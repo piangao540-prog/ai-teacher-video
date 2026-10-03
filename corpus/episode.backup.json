@@ -1,0 +1,187 @@
+{
+  "parts": [
+    {
+      "text": "给博客加图片，我本以为只是加个按钮的事。"
+    },
+    {
+      "text": "真做起来才发现，这是一条完整的图片管线。"
+    },
+    {
+      "text": "压缩控制源头体积，校验前后端各做一次，懒加载控制请求时机。"
+    },
+    {
+      "text": "先说压缩。手机照片动辄三五兆，原样上传存储和加载都吃不消。"
+    },
+    {
+      "text": "第一行，先取出原图的宽和高。"
+    },
+    {
+      "text": "第二行，算出缩放比例，最长边压到九百像素，小图不放大。"
+    },
+    {
+      "text": "第三四行，按比例设置 canvas 的宽和高。"
+    },
+    {
+      "text": "第五行，把原图画进 canvas，完成重绘。"
+    },
+    {
+      "text": "第六行，用 toDataURL 导出，输出类型和质量按原图类型取舍。"
+    },
+    {
+      "text": "实测一张纯色图从 154KB 压到 0.6KB，复杂壁纸也少了 87%。"
+    },
+    {
+      "text": "接下来是图片存在哪。后端跑在 Vercel 上，没有持久磁盘。"
+    },
+    {
+      "text": "所以方案是前端压成 base64，后端校验后存进 MySQL，返回图片 URL。"
+    },
+    {
+      "text": "代价是数据库会变大，后端必须做大小兜底，超过两百万字符直接拒绝。"
+    },
+    {
+      "text": "最后看渲染端，用 marked 渲染文章，给图片渲染器加一行属性。"
+    },
+    {
+      "text": "第一行，marked 的渲染器接收的是 token 对象，不是位置参数。"
+    },
+    {
+      "text": "第二行，从 tokens 里取出 alt 文本。"
+    },
+    {
+      "text": "第三行，输出 img 标签，关键是加上 loading 等于 lazy。"
+    },
+    {
+      "text": "第四行，把自定义渲染器注册进 marked。"
+    },
+    {
+      "text": "这是浏览器原生懒加载，图片进视口才发请求。"
+    },
+    {
+      "text": "打开页面只加载第一屏，往下滚才加载后面的，首屏请求数明显减少。"
+    }
+  ],
+  "scenes": [
+    {
+      "template": "SlideBullets",
+      "startPart": 0,
+      "props": {
+        "title": "博客图片管线三层思路",
+        "bullets": [
+          {
+            "text": "压缩：控制源头体积",
+            "part": 1
+          },
+          {
+            "text": "校验：前后端各做一次",
+            "part": 2
+          },
+          {
+            "text": "懒加载：控制请求时机",
+            "part": 3
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 4,
+      "props": {
+        "fileName": "compress.js",
+        "lines": [
+          {
+            "code": "const w = img.width, h = img.height",
+            "part": 4
+          },
+          {
+            "code": "const scale = Math.min(1, maxSize / Math.max(w, h))",
+            "part": 5
+          },
+          {
+            "code": "canvas.width = w * scale",
+            "part": 6
+          },
+          {
+            "code": "canvas.height = h * scale",
+            "part": 6
+          },
+          {
+            "code": "ctx.drawImage(img, 0, 0, canvas.width, canvas.height)",
+            "part": 7
+          },
+          {
+            "code": "const dataUrl = canvas.toDataURL(outputType, quality)",
+            "part": 8
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 9,
+      "props": {
+        "title": "图片存储方案",
+        "bullets": [
+          {
+            "text": "Vercel 无持久磁盘",
+            "part": 10
+          },
+          {
+            "text": "base64 存 MySQL，返回 URL",
+            "part": 11
+          },
+          {
+            "text": "后端兜底：超两百万字符拒绝",
+            "part": 12
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 13,
+      "props": {
+        "title": "渲染端：图片懒加载",
+        "bullets": [
+          {
+            "text": "marked 渲染文章内容",
+            "part": 13
+          },
+          {
+            "text": "自定义 image 渲染器",
+            "part": 14
+          },
+          {
+            "text": "加 loading=lazy 属性",
+            "part": 16
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 14,
+      "props": {
+        "fileName": "renderer.js",
+        "lines": [
+          {
+            "code": "// marked v5+ 渲染器接收 token 对象，不是位置参数",
+            "part": 14
+          },
+          {
+            "code": "const text = tokens.map((t) => t.text).join('')",
+            "part": 15
+          },
+          {
+            "code": "return `<img src=\"${href}\" alt=\"${text}\" loading=\"lazy\" />`",
+            "part": 16
+          },
+          {
+            "code": "marked.use({ renderer: markdownRenderer })",
+            "part": 17
+          }
+        ]
+      }
+    }
+  ]
+}

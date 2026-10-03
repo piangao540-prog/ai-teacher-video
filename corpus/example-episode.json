@@ -1,0 +1,40 @@
+{
+  "parts": [
+    { "text": "我们先从 Vue3 的响应式原理说起。这里有三件事必须搞清楚：" },
+    { "text": "第一，ref 和 reactive 到底有什么区别。" },
+    { "text": "第二，依赖收集究竟发生在什么时候。" },
+    { "text": "第三，为什么解构赋值会把响应式弄丢。" },
+    { "text": "先看第一个问题。" },
+    { "text": "第一行，用 ref 定义一个计数器。" },
+    { "text": "第二行，取值的时候必须加 value。" },
+    { "text": "第三行，用 reactive 定义一个对象。" },
+    { "text": "第四行，对象属性可以直接访问，不需要加 value。" }
+  ],
+  "scenes": [
+    {
+      "template": "SlideBullets",
+      "startPart": 0,
+      "props": {
+        "title": "Vue3 响应式原理",
+        "bullets": [
+          { "text": "ref 和 reactive 的区别", "part": 1 },
+          { "text": "依赖收集发生在什么时候", "part": 2 },
+          { "text": "为什么解构会丢响应式", "part": 3 }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 4,
+      "props": {
+        "fileName": "ref-vs-reactive.ts",
+        "lines": [
+          { "code": "const count = ref(0)", "part": 5 },
+          { "code": "count.value  // 0", "part": 6 },
+          { "code": "const state = reactive({ n: 0 })", "part": 7 },
+          { "code": "state.n  // 0", "part": 8 }
+        ]
+      }
+    }
+  ]
+}

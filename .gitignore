@@ -1,0 +1,9 @@
+node_modules/
+dist/
+out/
+frames/
+*.log
+
+# secrets - never commit
+.env
+.env.local

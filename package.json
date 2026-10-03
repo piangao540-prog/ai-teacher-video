@@ -1,0 +1,34 @@
+{
+  "name": "ai-teacher",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "plan": "tsx src/plan/plan.ts",
+    "tts": "tsx src/cli/index.ts tts",
+    "render": "tsx src/cli/index.ts render",
+    "build:video": "tsx src/cli/index.ts build",
+    "typecheck": "tsc --noEmit",
+    "shot": "tsx src/render/shot.ts",
+    "frames": "tsx src/render/frames.ts",
+    "encode": "tsx src/compose/encode.ts",
+    "video": "tsx src/plan/build-storyboard.ts && tsx src/render/frames.ts && tsx src/compose/encode.ts",
+    "say": "tsx src/tts/speak.ts",
+    "storyboard": "tsx src/plan/build-storyboard.ts"
+  },
+  "dependencies": {
+    "vue": "^3.5.43",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@types/node": "^26.6.3",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "msedge-tts": "^2.0.8",
+    "playwright": "^1.63.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  }
+}
