@@ -2,11 +2,13 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { validateEpisode, type Episode } from './episode'
 import { buildCues, norm } from './subtitle'
+// ★ 打字速度从 sceneState.ts import，不再在这里抄一份。
+//   这个常量决定「第几个字符什么时候出现」，分镜和渲染必须是同一个值 ——
+//   以前两边各写一个 45、靠一句注释维持，正是复用判据踩过的那种坑。
+import { CHAR_MS, termLineDurationMs } from '../render/scenes/sceneState'
 
 type Word = { text: string; startMs: number; durationMs: number }
 
-// 打字速度。必须和 CodeTyping.vue 里的 CHAR_MS 保持一致。
-const CHAR_MS = 45
 const LINE_GAP_MS = 200
 
 const outRoot = path.resolve('out/render')
@@ -102,6 +104,24 @@ const scenes = episode.scenes.map((s, si) => {
       return { code: l.code, atMs }
     })
     props = { fileName: p.fileName, lines }
+  } else if (s.template === 'Terminal') {
+    const p = s.props as {
+      title?: string
+      prompt?: string
+      lines: Array<{ text: string; kind: 'command' | 'output'; part?: number }>
+    }
+    let prevEnd = -1
+    const lines = p.lines.map((l) => {
+      // 命令：卡在那段讲解开口时开始打。
+      // 输出：不写 part，紧接在自己那条命令打完之后出现。
+      const fromPart = typeof l.part === 'number' ? partTimes[l.part]! - startMs : null
+      const minAt = prevEnd < 0 ? 0 : prevEnd + LINE_GAP_MS
+      const atMs = fromPart === null ? minAt : Math.max(fromPart, minAt)
+      // 输出不占时间（整行出现），命令按字符数占时间
+      prevEnd = atMs + termLineDurationMs(l)
+      return { text: l.text, kind: l.kind, atMs }
+    })
+    props = { title: p.title, prompt: p.prompt ?? '$', lines }
   } else {
     throw new Error('不认识的场景模板「' + s.template + '」。要么拼错了，要么还没在 Stage.vue 里注册。')
   }
@@ -172,13 +192,17 @@ for (const [si, sc] of scenes.entries()) {
   if (typeof p.fileName === 'string') console.log('    文件: ' + p.fileName)
   if (Array.isArray(p.lines)) {
     // part 在「源剧本」里，不在输出对象里 —— 从输出对象读会永远读不到
-    const src = (episode.scenes[si]!.props as { lines: Array<{ code: string; part?: number }> }).lines
-    const printed = p.lines as Array<{ code: string; atMs: number }>
+    const src = (episode.scenes[si]!.props as {
+      lines: Array<{ code?: string; text?: string; kind?: string; part?: number }>
+    }).lines
+    const printed = p.lines as Array<{ code?: string; text?: string; kind?: string; atMs: number }>
     printed.forEach((l, j) => {
       // 把这一行对应的讲解也打出来 —— 一眼就能看出画面和声音对不对得上
       const part = src[j]?.part
       const narration = typeof part === 'number' ? episode.parts[part]!.text : '（无讲解，紧接上一行）'
-      console.log('    +' + String(l.atMs).padStart(6) + 'ms   ' + l.code)
+      // Terminal 用 $ 标出命令，和输出区分开
+      const mark = l.kind === 'command' ? '$ ' : ''
+      console.log('    +' + String(l.atMs).padStart(6) + 'ms   ' + mark + (l.code ?? l.text ?? ''))
       console.log('                  └ ' + narration)
     })
   }

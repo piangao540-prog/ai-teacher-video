@@ -43,6 +43,7 @@ export async function buildUserPrompt(article: string): Promise<string> {
 - 段号是**程序数出来的**，你只要数对，**不需要给任何东西起名字**。
 - 幻灯片里的**每一条要点**都要写 part，指向**专门讲这条要点的那一段**。
 - 代码块里的**每一行**（除了纯收尾符号）都要写 part，指向专门讲这一行的那一段。
+- 终端里的**每条命令**都要写 part；输出行不写 part，它紧跟在自己那条命令后面出现。
 
 ### SlideBullets（幻灯片）
 
@@ -73,6 +74,23 @@ export async function buildUserPrompt(article: string): Promise<string> {
   }
 }
 
+### Terminal（终端演示）
+
+{
+  "template": "Terminal",
+  "startPart": 8,
+  "props": {
+    "title": "运行构建",
+    "prompt": "$",
+    "lines": [
+      { "text": "pnpm build", "kind": "command", "part": 9 },
+      { "text": "✓ built in 363ms", "kind": "output" },
+      { "text": "pnpm dev", "kind": "command", "part": 10 },
+      { "text": "➜  Local: http://localhost:5173/", "kind": "output" }
+    ]
+  }
+}
+
 # 硬性要求
 
 1. **段号只能往上走**：
@@ -85,10 +103,11 @@ export async function buildUserPrompt(article: string): Promise<string> {
    每一行代码都要有自己的 part，而且讲稿里那一段要讲的**正是这一行代码**。
    最常见的致命错误：代码写了 7 行，讲稿却只讲了 4 句 —— 剩下 3 行会自己按打字速度冒出来，
    声音和画面就彻底错开了。代码不多写、讲解不缺席，两边数量要对上。
+   Terminal 同理：**每条命令都要有自己的 part**，输出行不写 part（它紧跟命令之后出现）。
 
 3. **画面装得下的上限（超过直接校验失败）**：
    - 一页幻灯片最多 6 条要点，每条最多 22 个字；标题最多 20 个字。
-   - 一个代码场景最多 8 行，每行最多 60 个字符（超了会被裁掉）。
+   - 一个代码场景（CodeTyping）或终端场景（Terminal）最多 8 行，每行最多 60 个字符。
    - 每段旁白最多 55 个字。
    装不下就**拆成两页或两个场景**，不要硬塞。
 
@@ -105,6 +124,8 @@ export async function buildUserPrompt(article: string): Promise<string> {
    - 场景里引用的段号**不能超过下一个场景的开始段** —— 超了那个元素永远不会出现。
    一句话：**讲几件事，就配几个场景，每个场景的时间要够它自己的内容演完。**
 9. 一般 3 到 6 个场景：先用幻灯片交代脉络，再用代码场景讲细节。
+   要展示「把它跑起来会发生什么」（构建输出、起服务、测试结果），就用 Terminal ——
+   Terminal 讲的是运行结果，CodeTyping 讲的是代码本身，别拿 Terminal 去念代码。
 
 # 一个已经做好的范例
 

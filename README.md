@@ -91,6 +91,65 @@ out/render/final.mp4
 换成段号之后，那一整类错误**在结构上就不可能发生**：段号是程序数出来的，
 模型只需要数对；顺序由「段号不能倒退」一条规则管住。
 
+## 有哪几种画面
+
+三种。都是「给一个 `t`，算出这一帧长什么样」，没有别的。
+
+| template | 画什么 | 什么时候用 |
+| --- | --- | --- |
+| `SlideBullets` | 标题 + 要点逐条淡入 | 交代脉络、列结论 |
+| `CodeTyping` | 代码窗口，逐字打出来 | 讲**代码长什么样** |
+| `Terminal` | 终端窗口，命令逐字打、输出整行出现 | 讲**把它跑起来会发生什么** |
+
+`CodeTyping` 和 `Terminal` 长得像但分工不同：一个讲代码本身，一个讲运行结果
+（构建输出、起服务、测试失败）。让 Terminal 去念一段代码是误用 ——
+观众要的是「敲下去之后屏幕上多了什么」。
+
+```json
+{
+  "template": "Terminal",
+  "startPart": 8,
+  "props": {
+    "title": "运行构建",
+    "prompt": "$",
+    "lines": [
+      { "text": "pnpm build", "kind": "command", "part": 9 },
+      { "text": "✓ built in 363ms", "kind": "output" },
+      { "text": "pnpm dev", "kind": "command", "part": 10 },
+      { "text": "➜  Local: http://localhost:5173/", "kind": "output" }
+    ]
+  }
+}
+```
+
+两条规则和 CodeTyping 是同一套心智模型：**`command` 必须写 `part`**
+（讲一行、出现一行），**`output` 不写 `part`** —— 它是程序吐出来的，
+紧跟在自己那条命令打完之后出现。输出逐字打会很怪，真实终端也不这样。
+
+光标只在**有命令正在打字**时出现，打完就消失。不是常驻闪烁 ——
+常驻闪会每 530ms 把复用判据打回「在变」，白白吃掉一帧的复用率。
+
+### 加一个新模板要动 5 处
+
+模板名是裸字符串，没有注册表（只有 3 个模板，做注册表是过度设计）。
+加一个模板，这 5 处**必须同时改**：
+
+1. `src/render/scenes/Xxx.vue` —— 组件本身
+2. `src/render/scenes/sceneState.ts` —— 加 `xxxStateAt(t, props)`：把「这一帧
+   所有随时间变化的值」算出来。**组件和复用判据都调它**，不许各算一遍
+3. `src/render/stage/Stage.vue` 的 `TEMPLATES` —— 注册组件
+4. `src/render/stage/Stage.vue` 的 `SIGNATURES` —— 登记帧签名。
+   **漏了这处不会报错，画面会卡住不动**（判据认为它永远在变 / 永远不变）
+5. `src/plan/episode.ts` 的 `TEMPLATE_NAMES` —— 白名单。漏了模型就能写出
+   不存在的模板名，`Stage.vue` 找不到组件时会**安静地画一片空白**
+
+外加 `build-storyboard.ts` 加一支（段号 → `atMs`），以及 `prompt.ts`
+和 `corpus/example-episode.json` 里的说明和范例 —— 模型主要靠范例学形状，
+只在提示词里写 prose 它多半不会用。
+
+> 已经有一条兜底：`validateEpisode` 会拿 `TEMPLATE_NAMES` 拦住拼错的模板名。
+> 这是补的第 5 处 —— 在此之前模板名写错会一路穿到渲染，什么都不报。
+
 ## 字幕怎么来的（`src/plan/subtitle.ts`）
 
 字幕**不需要 AI 参与**，它是 `pnpm storyboard` 的副产物：

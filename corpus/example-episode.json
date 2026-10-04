@@ -8,7 +8,10 @@
     { "text": "第一行，用 ref 定义一个计数器。" },
     { "text": "第二行，取值的时候必须加 value。" },
     { "text": "第三行，用 reactive 定义一个对象。" },
-    { "text": "第四行，对象属性可以直接访问，不需要加 value。" }
+    { "text": "第四行，对象属性可以直接访问，不需要加 value。" },
+    { "text": "写完了就把它跑起来看看。" },
+    { "text": "先装依赖，再启动开发服务器。" },
+    { "text": "浏览器里就能看到页面了。" }
   ],
   "scenes": [
     {
@@ -33,6 +36,20 @@
           { "code": "count.value  // 0", "part": 6 },
           { "code": "const state = reactive({ n: 0 })", "part": 7 },
           { "code": "state.n  // 0", "part": 8 }
+        ]
+      }
+    },
+    {
+      "template": "Terminal",
+      "startPart": 9,
+      "props": {
+        "title": "运行",
+        "prompt": "$",
+        "lines": [
+          { "text": "npm install", "kind": "command", "part": 9 },
+          { "text": "added 42 packages in 1.2s", "kind": "output" },
+          { "text": "npm run dev", "kind": "command", "part": 10 },
+          { "text": "➜  Local: http://localhost:5173/", "kind": "output" }
         ]
       }
     }

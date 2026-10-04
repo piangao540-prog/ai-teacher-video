@@ -2,7 +2,15 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import CodeTyping from '../scenes/CodeTyping.vue'
 import SlideBullets from '../scenes/SlideBullets.vue'
-import { codeStateAt, slideStateAt, type CodeLine, type SlideProps } from '../scenes/sceneState'
+import Terminal from '../scenes/Terminal.vue'
+import {
+  codeStateAt,
+  slideStateAt,
+  terminalStateAt,
+  type CodeLine,
+  type SlideProps,
+  type TermLine,
+} from '../scenes/sceneState'
 import Subtitle, { type SubtitleVariant } from './Subtitle.vue'
 
 // 场景模板注册表。
@@ -10,6 +18,7 @@ import Subtitle, { type SubtitleVariant } from './Subtitle.vue'
 const TEMPLATES: Record<string, unknown> = {
   SlideBullets,
   CodeTyping,
+  Terminal,
 }
 
 const params = new URLSearchParams(location.search)
@@ -133,6 +142,7 @@ function cueIndexAt(ms: number): number {
 const SIGNATURES: Record<string, ((local: number, props: Record<string, unknown>) => unknown) | undefined> = {
   CodeTyping: (local, p) => codeStateAt(local, p.lines as CodeLine[]),
   SlideBullets: (local, p) => slideStateAt(local, p as unknown as SlideProps),
+  Terminal: (local, p) => terminalStateAt(local, p.lines as TermLine[]),
 }
 
 /** 某一帧的画面签名；不认识的模板返回 null */

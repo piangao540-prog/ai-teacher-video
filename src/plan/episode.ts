@@ -32,6 +32,14 @@ export type Episode = {
   scenes: SceneSpec[]
 }
 
+// 已知的画面模板。
+//
+// ★ 在这之前**没有任何一处校验模板名是否合法** —— template 就是个裸 string，
+//   名字写错了会一路穿过校验，到 build-storyboard 才抛错；更糟的是
+//   Stage.vue 找不到组件时 `TEMPLATES[name] ?? null` 会让画面**安静地空白**。
+//   加新模板时这里、build-storyboard 的分支、Stage.vue 的两张表都要同步。
+export const TEMPLATE_NAMES = ['SlideBullets', 'CodeTyping', 'Terminal']
+
 export function narrationOf(episode: Episode): string {
   return episode.parts.map((p) => p.text).join('')
 }
@@ -64,7 +72,15 @@ export function validateEpisode(episode: Episode): string[] {
   let lastStart = -1
 
   episode.scenes.forEach((s, si) => {
-    if (!s.template) problems.push('scenes[' + si + '] 缺 template')
+    if (!s.template) {
+      problems.push('scenes[' + si + '] 缺 template')
+    } else if (!TEMPLATE_NAMES.includes(s.template)) {
+      problems.push(
+        'scenes[' + si + '] 的 template「' + s.template + '」不是已知的画面模板。' +
+          '可用的只有：' + TEMPLATE_NAMES.join(' / ') + '。' +
+          '（拼错的话 Stage.vue 找不到组件，画面会一片空白而且不报错 —— 所以在这里就拦住。）',
+      )
+    }
     if (typeof s.startPart !== 'number' || !Number.isInteger(s.startPart)) {
       problems.push('scenes[' + si + '] 的 startPart 必须是整数')
       return
@@ -197,24 +213,48 @@ export function checkEditorial(episode: Episode): string[] {
     }
 
     if (Array.isArray(props.lines)) {
-      const lines = props.lines as Array<{ code?: string; part?: number }>
+      const lines = props.lines as Array<{ code?: string; text?: string; kind?: string; part?: number }>
+      const isTerminal = s.template === 'Terminal'
+      // 两种模板共用 lines 这个字段名，正文取 code 或 text
+      const bodyOf = (l: { code?: string; text?: string }): string => l.code ?? l.text ?? ''
+
       if (lines.length > LIMITS.maxLines) {
-        problems.push(tag + ' 有 ' + lines.length + ' 行代码，超过 ' + LIMITS.maxLines + ' 行上限，删减。')
+        problems.push(tag + ' 有 ' + lines.length + ' 行，超过 ' + LIMITS.maxLines + ' 行上限，删减。')
       }
       lines.forEach((l, j) => {
-        // 只有「纯收尾符号」的行才可以不写 part。
-        // 其他每一行都必须有 part，因为代码必须「讲一行、出现一行」——
-        // 少了 part 的行会按打字速度自己冒出来（每行约 1.5 秒），
-        // 而讲解早就讲到别处去了，这就是音画不同步。
-        const isCloser = /^[\s}\]\);,]*$/.test(l.code ?? '')
-        if (typeof l.part !== 'number' && !isCloser) {
-          problems.push(
-            tag + ' lines[' + j + ']「' + (l.code ?? '').trim() + '」没有 part。' +
-              '**除了纯收尾符号，每一行代码都要写 part**，也就是讲稿里要有一段专门讲这一行。',
-          )
+        const body = bodyOf(l)
+
+        if (isTerminal) {
+          // 终端：命令必须绑讲解；输出是程序吐出来的，不写 part。
+          if (l.kind !== 'command' && l.kind !== 'output') {
+            problems.push(
+              tag + ' lines[' + j + ']「' + body.trim() + '」的 kind 必须是 "command" 或 "output"。' +
+                '"command" 是敲进去的命令（会逐字打出来），' +
+                '"output" 是这条命令打印出来的结果（整行出现）。',
+            )
+          } else if (l.kind === 'command' && typeof l.part !== 'number') {
+            problems.push(
+              tag + ' lines[' + j + ']「' + body.trim() + '」是命令但没有 part。' +
+                '**每条命令都要写 part**，也就是讲稿里要有一段专门讲这条命令。' +
+                '（输出行不用写 part —— 它紧跟在自己那条命令后面出现。）',
+            )
+          }
+        } else {
+          // 代码：只有「纯收尾符号」的行才可以不写 part。
+          // 其他每一行都必须有 part，因为代码必须「讲一行、出现一行」——
+          // 少了 part 的行会按打字速度自己冒出来（每行约 1.5 秒），
+          // 而讲解早就讲到别处去了，这就是音画不同步。
+          const isCloser = /^[\s}\]\);,]*$/.test(body)
+          if (typeof l.part !== 'number' && !isCloser) {
+            problems.push(
+              tag + ' lines[' + j + ']「' + body.trim() + '」没有 part。' +
+                '**除了纯收尾符号，每一行代码都要写 part**，也就是讲稿里要有一段专门讲这一行。',
+            )
+          }
         }
-        if (typeof l.code === 'string' && l.code.length > LIMITS.maxCodeChars) {
-          problems.push(tag + ' lines[' + j + '] 有 ' + l.code.length + ' 个字符，超过 ' + LIMITS.maxCodeChars + ' 上限，会折行。')
+
+        if (body.length > LIMITS.maxCodeChars) {
+          problems.push(tag + ' lines[' + j + '] 有 ' + body.length + ' 个字符，超过 ' + LIMITS.maxCodeChars + ' 上限，会折行。')
         }
       })
     }
