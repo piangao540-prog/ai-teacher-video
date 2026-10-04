@@ -22,7 +22,7 @@ README 只记「是什么」，只看 README 会重犯已经踩过的坑。
 | 命令 | `pnpm plan` / `say` / `storyboard` / `video`（详见 README） |
 | 当前成片 | 162.3 秒，8 个场景（6 个幻灯片 + 2 个代码打字） |
 | 字幕 | 39 条，**全部一行** |
-| 渲染 | 全片 4869 帧约 3.2 分钟（原来 8.5 分钟） |
+| 渲染 | 代码场景也能复用了；前 60 秒 233s → 73s，复用 78%（**全片未实测**） |
 | 版本控制 | 已建，用 `feat:` / `fix:` / `perf:` 规范词 |
 
 提交历史（从旧到新）：
@@ -33,6 +33,8 @@ b8a9c18  feat: 加字幕（词级时间戳 → 一条一行，烧进画面）
 e1433ea  fix: 删掉 plan.ts 里引用已废弃 cue 字段的死代码
 46368b0  feat: 字幕收敛成一条一行（39/39）
 b5980b9  perf: 渲染提速 2.7 倍（静止帧复用）
+38ae25e  docs: 加 HANDOFF.md（换会话交接用）+ 修 README 过期的耗时
+96eb193  perf: 代码场景也能复用（判据改成帧签名）
 ```
 
 **注意**：`out/render/final.mp4` 是旧的（没有字幕）。要出片跑 `pnpm video`。
@@ -41,14 +43,12 @@ b5980b9  perf: 渲染提速 2.7 倍（静止帧复用）
 
 按价值排序：
 
-1. **代码打字场景的渲染复用**（占片长约 1/3，目前完全复用不上）。
-   现在只复用幻灯片，因为代码场景有光标自发闪烁，
-   我写过两版判据都在边界上出错（全片 29 帧误判 → 画面卡住）。
-   要做到这一点，得先解决「第几个字符已打出来」的精确判定 ——
-   由 `CodeTyping.vue` 的 `Math.floor(elapsed / CHAR_MS)` 决定，
-   用 storyboard 里的 `atMs` 推总会差一两个字符。
+1. **全片对拍一次**。前 60 秒已经验过（1800 帧 MD5 0 差异、复用 78%），
+   但全片还有第二个代码场景 s6（105 秒）和后面几段幻灯片没覆盖 ——
+   走的是同一条代码路径，可本项目的纪律是全片跑一次才算数。
 2. **画面类型只有两种**：幻灯片、代码打字。加模板要看看注册机制
-   （`Stage.vue` 的 `TEMPLATES`）够不够松。
+   （`Stage.vue` 的 `TEMPLATES`）够不够松 —— 现在还得在 `SIGNATURES`
+   里登记一份帧签名，**两个表要同时改**，漏了就会画面卡住。
 3. **字幕只有画面内烧录**，没有 `.srt` / `.vtt`。想传 B 站/YouTube 需要导出
    （数据现成：`storyboard.json` 的 `cues`）。
 
@@ -66,11 +66,23 @@ b5980b9  perf: 渲染提速 2.7 倍（静止帧复用）
   关掉复用跑一遍，再正常跑一遍，逐帧比 MD5，必须完全一致：
 
   ```powershell
-  $env:FRAMES_NO_REUSE='1'; pnpm frames     # 朴素版
-  # 把 out/render/frames 复制到别处留底
-  $env:FRAMES_NO_REUSE='0'; pnpm frames     # 优化版
-  # 逐帧比 MD5
+  # pnpm frames [fps] [时长ms] —— 给了时长就只跑前 N 毫秒，调试时很省时间
+  $env:FRAMES_NO_REUSE='1'; pnpm frames 30 60000
+  Get-ChildItem out/render/frames/*.png | Sort-Object Name |
+    Get-FileHash -Algorithm MD5 | ForEach-Object Hash | Set-Content -Encoding ascii $env:TEMP\naive.txt
+
+  $env:FRAMES_NO_REUSE='0'; pnpm frames 30 60000
+  Get-ChildItem out/render/frames/*.png | Sort-Object Name |
+    Get-FileHash -Algorithm MD5 | ForEach-Object Hash | Set-Content -Encoding ascii $env:TEMP\opt.txt
+
+  if (Compare-Object (gc $env:TEMP\naive.txt) (gc $env:TEMP\opt.txt)) { '对拍失败' } else { '对拍通过' }
   ```
+
+  **存哈希清单，别把 `frames` 整个复制留底** —— 全片近 5000 张 1080p PNG，
+  复制一份要占几个 G，而哈希清单只有几百 KB。
+  （这里用 PowerShell 的 `Get-Content`/`Set-Content` 是安全的：
+  前面那条「会写坏中文」的警告针对的是**源码文件**，
+  这两份清单是纯 ASCII 的十六进制。）
 
   这个开关就是为验证存在的。不加对拍就提交的话，成片里会有画面卡住 ——
   我实测跑出过 502 帧不一致。
