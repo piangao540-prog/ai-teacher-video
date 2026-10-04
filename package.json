@@ -9,7 +9,7 @@
     "tts": "tsx src/cli/index.ts tts",
     "render": "tsx src/cli/index.ts render",
     "build:video": "tsx src/cli/index.ts build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "vue-tsc --noEmit",
     "shot": "tsx src/render/shot.ts",
     "shot:cue": "tsx src/render/shot.ts --cue",
     "frames": "tsx src/render/frames.ts",
@@ -29,7 +29,8 @@
     "msedge-tts": "^2.0.8",
     "playwright": "^1.63.0",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
-    "vite": "^8.3.2"
+    "typescript": "^5.9.3",
+    "vite": "^8.3.2",
+    "vue-tsc": "^3.3.12"
   }
 }
