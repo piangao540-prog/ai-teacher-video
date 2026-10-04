@@ -177,13 +177,11 @@ await writeFile('corpus/episode.json', JSON.stringify(episode, null, 2) + '\n')
 
 const text = episode.parts.map((p) => p.text).join('')
 const seconds = Math.round(text.length / 5.3)
-const cued = episode.parts.filter((p) => p.cue).length
 
 console.log('')
 console.log('通过校验 ✓（第 ' + (problems.length === 0 ? '' : '') + '次）')
 console.log('讲稿: ' + episode.parts.length + ' 段 / ' + text.length + ' 字  （约 ' + seconds + ' 秒）')
 console.log('场景: ' + episode.scenes.map((s) => s.template).join(' -> '))
-console.log('cue:  ' + cued + ' 个')
 console.log('')
 console.log('已写入 corpus/episode.json（旧的备份在 episode.backup.json）')
 console.log('下一步：pnpm say  →  pnpm storyboard  →  pnpm video')
