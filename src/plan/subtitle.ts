@@ -54,12 +54,20 @@ export type Cue = {
 //   没有标点的一整段）才硬切。
 //
 // ★ 一条字幕 = 一行。
-//   字数上限直接对齐「一行放得下多少字」，于是一条字幕基本不需要折行。
+//   字数上限直接对齐「一行放得下多少字」，于是一条字幕不再折行。
 //   26 字是渲染出来量过的：52px 字号下约占 1400px，画面宽 1920px，留得住边距。
 //
-//   但「一行」要让位给「别闪一下就没」：如果一个切法会切出活不到
-//   MIN_CUE_MS 的碎片，就宁可让这条折成两行、把话说完。
-//   实测「…渲染时 / 懒加载。」会切出 1.0 秒的「懒加载。」，很刺眼。
+//   代价要说清楚：为了守住「一行」，偶尔会切出偏短的一条，实测有 3 条
+//   落在 1.5~2.0 秒（「的 images 表。」「href 和 tokens。」这种）。
+//
+//   这是**故意接受的**取舍，因为另一边更糟：
+//     切碎 → 只是这一条短一点，句子本身还是完整读得下去的
+//     折行 → 排版乱掉，而且短的那一行只有两三个字，更难看
+//
+//   想反过来（宁可折行也不要短字幕），把 MIN_CUE_MS / MIN_CUE_CHARS 调大。
+//   也别把 MIN_CUE_CHARS 调太小 —— 试过 5，断句确实更自然
+//   （能切成「images 表。」而不是「的 images 表。」），但短碎片从 3 条
+//   涨到 6 条、最短掉到 1.2 秒。8 是这两头的平衡点。
 const MAX_LINE_CHARS = 26
 const MIN_CUE_CHARS = 8
 const MAX_CUE_CHARS = MAX_LINE_CHARS
@@ -611,18 +619,40 @@ export function buildCues(text: string, words: Word[], parts?: string[]): Cue[] 
       // 候选**从词首里挑**，而不是从掩码里挑 —— 掩码标的是「字与字之间的缝」，
       // 和「第几个字符」差一格就会切在词中间。
       //
-      // 两道否决（切法不合适就退回去折行）：
-      //   1) 第一条活不到 MIN_CUE_MS —— 与其给人看 1 秒的「懒加载。」
-      //   2) 剩下那截不到 MIN_CUE_CHARS —— 与其给人看「丢。」「tokens。」
+      // ★ 这里**不能**在「头超宽」时 break。
+      //   之前写成 break，于是头一到上限就整个放弃，永远找不到
+      //   「切早一点、给尾巴留够长度」的位置。实测后果：
+      //     第二行，算出缩放比例， / 最长边压到九百像素，小图不放大。
+      //   其实切在「…九百像素，」就能切成两条一行、两条都够长。
+      //
+      // 分两轮挑，优先级从高到低：
+      //   ① 切点后面紧跟标点的 —— 这种切法句子天然完整，所以**不必**满足
+      //      尾巴长度要求，可以切得更自然。实测靠这条把
+      //        「所以我把 base64 字符串直接存进 / 的 images 表。」
+      //      变成了
+      //        「所以我把 base64 字符串 / 的 images 表。」
+      //   ② 退回到任意词首，这时才用三条硬约束筛：
+      //      头不超宽、前一条不短于 MIN_CUE_MS、尾巴不短于 MIN_CUE_CHARS
       let cut = -1
       if (lines.length > 1) {
+        const fits = (k: number): boolean => wrapCue(one.text.slice(0, k).trim()).length <= 1
+        const longEnough = (flat: number): boolean => ctx.seekMs(flat) - ctx.seekMs(from) >= MIN_CUE_MS
+
         for (let k = 1; k < one.map.length; k++) {
           const flat = one.map[k]
           if (flat === undefined || flat < 0 || !wordStartSet.has(flat)) continue
-          if (wrapCue(one.text.slice(0, k).trim()).length > 1) break
-          if (ctx.seekMs(flat) - ctx.seekMs(from) < MIN_CUE_MS) break
-          if (e - flat < MIN_CUE_CHARS) continue
-          cut = k
+          if (!fits(k) || !longEnough(flat)) continue
+          if (PUNCT.includes(ctx.charAt(flat))) cut = k // 收在标点上，优先
+        }
+
+        if (cut < 0) {
+          for (let k = 1; k < one.map.length; k++) {
+            const flat = one.map[k]
+            if (flat === undefined || flat < 0 || !wordStartSet.has(flat)) continue
+            if (e - flat < MIN_CUE_CHARS) continue
+            if (!fits(k) || !longEnough(flat)) continue
+            cut = k
+          }
         }
       }
 
