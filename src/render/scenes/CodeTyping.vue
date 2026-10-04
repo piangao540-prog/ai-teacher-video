@@ -1,55 +1,19 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-
-// ============================================================
-//  ★ 占位版：每行只在对应的时间点出现（淡入）。
-//    完整的「逐字打字 + 光标 + 当前行高亮」由你来写。
-// ============================================================
+import { codeStateAt, type CodeLine } from './sceneState'
+// 逐字打字 + 光标闪烁 + 当前行高亮。
+// 这三个视觉状态全部由 sceneState.ts 的 codeStateAt 从 t 算出来 ——
+// 渲染器判断「这一帧能不能复用上一帧」时调的是同一个函数，
+// 所以判据不可能和实际画面不一致。
 
 const props = defineProps<{
   t: number
   fileName: string
-  lines: Array<{ code: string; atMs: number }>
+  lines: CodeLine[]
 }>()
 
-// 每个字打出来的耗时
-const CHAR_MS = 45
-// 贯标闪烁周期
-const BLINK_MS = 530
-
-/**
- * @param i 行下标
- * @returns 当前这一行应该展示多少字符
- */
-
- function typedChars(i: number):number{
-  const line = props.lines[i]!
-  // 当前时间减去这一行开始的时间
-  const elapsed = props.t - line.atMs
-  if(elapsed <= 0) return 0
-  return Math.min(Math.floor(elapsed / CHAR_MS), line.code.length)
- }
-
-const FADE_MS = 300
-
-// 当前正在打字的行数，没有激活行返回-1
-const activeLine = computed(() =>{
-  let active = -1
-  for(let i = 0; i < props.lines.length; i++){
-    if(props.t >= props.lines[i]!.atMs) active = i
-  }
-  return active
-})
-
-// 光标闪烁显示隐藏由t决定
-const caretVisible = computed(() => {
-  return Math.floor(props.t / BLINK_MS) % 2 === 0
-})
-
-// 和 SlideBullets 里一模一样的那套算法：减掉开始时间，除以耗时，夹到 0~1
-function progress(startAtMs: number): number {
-  return Math.max(0, Math.min((props.t - startAtMs) / FADE_MS, 1))
-}
+// 一帧的全部视觉状态，从 t 算出来
+const state = computed(() => codeStateAt(props.t, props.lines))
 </script>
 
 <template>
@@ -62,10 +26,11 @@ function progress(startAtMs: number): number {
         <span class="filename">{{ fileName }}</span>
       </div>
       <div class="body">
-        <div v-for="(line, i) in lines" :key="i" class="line" :class="{ active: activeLine === i }">
+        <div v-for="(line, i) in lines" :key="i" class="line"
+             :class="{ active: state.activeLine === i }">
           <span class="gutter">{{ i + 1 }}</span>
-          <span class="text">{{line.code.slice(0, typedChars(i))}}</span>
-          <span v-if="activeLine === i && caretVisible" class="caret">▌</span>
+          <span class="text">{{ line.code.slice(0, state.typed[i]) }}</span>
+          <span v-if="state.activeLine === i && state.caret" class="caret">▌</span>
         </div>
       </div>
     </div>

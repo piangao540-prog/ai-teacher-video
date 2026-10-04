@@ -41,7 +41,8 @@ try {
     viewport: { width: 1920, height: 1080 },
     deviceScaleFactor: 1,
   })
-  // fps 要带给页面：__static 用它算「上一帧」
+  // fps 仍然带给页面：调试时能从 URL 看出这一遍是按几帧跑的
+  // （复用判据不再需要它 —— 上一帧的真实时刻由下面的 prevT 直接传）
   await page.goto(stage.url + '?render=1&fps=' + FPS)
   await page.waitForFunction(() => typeof (window as any).__seek === 'function')
 
@@ -55,6 +56,10 @@ try {
 
   for (let f = 0; f < frameCount; f++) {
     const t = Math.round((f * 1000) / FPS)
+    // 上一帧的**真实**时刻。不能让页面用 fps 反算：1000/30 = 33.333，
+    // 而这里真实的间隔是 33 或 34 —— 差的零点几毫秒正好踩在
+    // 字幕 / 字符出现的整数边界上，判据就会在边界帧上翻车。
+    const prevT = f > 0 ? Math.round(((f - 1) * 1000) / FPS) : -1
     const target = framePath(f + 1)
     const t0 = performance.now()
 
@@ -66,7 +71,12 @@ try {
     //   如果复用的帧也付这笔钱，省下的就只有截图。
     const q0 = performance.now()
     const canReuse =
-      !NO_REUSE && prevPath !== null && (await page.evaluate((v: number) => (window as any).__static(v), t))
+      !NO_REUSE &&
+      prevPath !== null &&
+      (await page.evaluate(
+        ([c, p]) => (window as any).__static(c, p),
+        [t, prevT] as [number, number],
+      ))
     tAsk += performance.now() - q0
 
     if (canReuse && prevPath !== null) {
