@@ -87,6 +87,112 @@ const CurrentComponent = computed(() =>
 // 传给场景的是「相对时间」：场景不知道自己在时间轴哪里，永远从 0 开始演
 const localT = computed(() => (current.value ? t.value - current.value.startMs : 0))
 
+// ---- 逐帧渲染的提速：这一帧能不能直接复用上一帧？ ----
+//
+// ★ 为什么可以这么判：画面是**时间的纯函数**（第 1 条设计约束）。
+//   同一段静态时间里，任意时刻算出来的画面完全一样 —— 所以不必去截图，
+//   把上一帧的 PNG 直接拿来用即可。
+//
+// 实测：screenshot 占 78.9ms/帧、seek 只占 13.4ms，而 79% 的帧
+// 和上一帧内容完全相同。跳过这些截图就是这一版提速的全部来源。
+//
+// 判据必须**保守**：漏判只是少省一点，误判会让画面卡住不动。
+//
+// 出片帧率。用来判断「这一帧和上一帧是不是落在同一条字幕里」。
+// 从 URL 读（frames.ts 会因为 --fps 把它带过来），默认 30。
+const FRAME_MS = 1000 / Number(params.get('fps') ?? 30)
+// 字幕出现时的淡入时长，**含余量**。Subtitle.vue 里的 FADE_MS 是 120ms，
+// 但那是「设计值」：实测透明度要 133ms 才到 1（帧对齐 + rAF 的零头），
+// 所以这里留到 160ms。留窄了会误判 —— 实测 120 还漏 2 帧。
+const CUE_FADE_MS = 160
+
+/** 这一时刻显示的是第几条字幕；没有就返回 -1 */
+function cueIndexAt(ms: number): number {
+  const list = cues.value
+  for (let i = 0; i < list.length; i++) {
+    if (ms < list[i]!.startMs) return -1
+    if (ms < list[i]!.endMs) return i
+  }
+  return -1
+}
+
+/** 一个会「到点出现」的元素：它出现的那一刻 + 动效收尾的时间 */
+const FADE_SLIDE = 450
+const FADE_TITLE = 650
+
+/**
+ * 这一帧，场景内部有没有**正在发生**的变化？
+ *
+ * ★ 只处理幻灯片。代码场景一律返回「在变」，不参与复用。
+ *
+ *   本来我给代码场景也写了判据（看逐字打字的区间、看光标是否在闪），
+ *   但那条路一直有边界漏洞：实测全片仍有 29 帧被误判 —— 而那些帧一旦
+ *   被判成静态就会被复制成上一帧，画面就卡住了。
+ *   原因是「第几个字符已经打出来」这件事由 CodeTyping.vue 的
+ *   Math.floor(elapsed / CHAR_MS) 决定，我用 storyboard 里的 atMs 去推，
+ *   总会差一两个字符的位置。
+ *
+ *   所以这里只留下**能确定**的部分：幻灯片上每个元素只在它出现后的
+ *   那段时间里在动，其余时间画面真的不动。代码场景（占本片约 1/3）
+ *   全部照常渲染，少省一点，但不会错。
+ */
+function sceneChangingAt(scene: Scene, local: number): boolean {
+  const p = scene.props as Record<string, unknown>
+
+  // 代码场景：不参与复用（光标一直在闪，见上面的说明）
+  if (Array.isArray(p.lines)) return true
+
+  // 幻灯片：每一条要点（含标题）只在它出现后的那段时间里在动
+  if (Array.isArray(p.bullets)) {
+    if (typeof p.titleAtMs === 'number' && local >= p.titleAtMs && local < p.titleAtMs + FADE_TITLE) return true
+    for (const b of p.bullets as Array<{ atMs?: number }>) {
+      if (typeof b.atMs === 'number' && local >= b.atMs && local < b.atMs + FADE_SLIDE) return true
+    }
+    return false
+  }
+
+  return true // 不认识的模板：保守起见当成一直在变
+}
+
+function isStaticAt(ms: number): boolean {
+  const s = current.value
+  if (!s) return false
+
+  const local = ms - s.startMs
+
+  // 1. 场景内部此刻有没有元素正在动？（代码场景一律算「在动」，见上）
+  if (sceneChangingAt(s, local)) return false
+
+  // 3. 字幕在这一帧有没有变？
+  //
+  // ★ 这里**不能**写成「这条字幕必须在 STATIC_HORIZON 内结束」。
+  //   第一版就是这么写的，结果静态判定恒为 false：字幕一条持续 3~6 秒，
+  //   而场景动效早就结束了，于是每个静态帧都落在某条字幕中间，
+  //   全被判成「字幕还没结束」。表现是复用率 0%，但画面完全正确
+  //   （所以对拍查不出来 —— 对拍只能证明没错，不能证明有效）。
+  //
+  // ★ 也**不要**再加一条「离字幕起点太近就不复用」。
+  //   我加过（阈值 1ms），结果漏掉了正好落在两帧之间的切换：
+  //   实测帧 175、176、285~288 因此误判 —— 复用会让字幕卡住。
+  //   只要老老实实比较「上一帧和这一帧是不是同一条字幕」，
+  //   切换点自己就被排除了，不需要额外的守卫。
+  //
+  // ★ 但「同一条字幕」还不够：字幕出现时有淡入，
+  //   那段时间透明度一直在变，画面并不相同。漏了这条会有 7 帧误判，
+  //   正好卡在两条字幕的交界处。
+  const here = cueIndexAt(ms)
+  const before = cueIndexAt(ms - FRAME_MS)
+  if (here !== before) return false
+
+  const cue = cues.value[here]
+  if (cue && ms < cue.startMs + CUE_FADE_MS) return false
+
+  return true
+}
+
+;(window as unknown as { __static: (ms: number) => boolean }).__static = isStaticAt
+
+
 // ★ 预览时以「音频」为时钟：t 跟着 audio.currentTime 走。
 //   这样你听到的和看到的是同一条时间线，能直接判断对不对得上。
 //   这不违反「场景只依赖 t」—— 场景依然只认 t，只是 t 的来源从 performance.now 换成了音频。
