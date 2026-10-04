@@ -11,6 +11,7 @@
     "build:video": "tsx src/cli/index.ts build",
     "typecheck": "tsc --noEmit",
     "shot": "tsx src/render/shot.ts",
+    "shot:cue": "tsx src/render/shot.ts --cue",
     "frames": "tsx src/render/frames.ts",
     "encode": "tsx src/compose/encode.ts",
     "video": "tsx src/plan/build-storyboard.ts && tsx src/render/frames.ts && tsx src/compose/encode.ts",

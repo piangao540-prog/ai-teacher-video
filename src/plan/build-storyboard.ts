@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { validateEpisode, type Episode } from './episode'
+import { buildCues, norm } from './subtitle'
 
 type Word = { text: string; startMs: number; durationMs: number }
 
@@ -24,6 +25,8 @@ const timings = JSON.parse(await readFile(path.join(outRoot, 'audio', 'timings.j
   audioFile: string
   provider: string
   voice: string
+  // 讲稿原文：字幕断句要用它的标点，所以必须一起读进来
+  text: string
   words: Word[]
 }
 
@@ -33,9 +36,10 @@ const timings = JSON.parse(await readFile(path.join(outRoot, 'audio', 'timings.j
 // 它给的是「我们 / 先 / 从 / Vue / 3 / 的 / 响应 / 式 / 原理 / 说 / 起」，
 // 讲稿里的「。」「，」「：」在词表里根本不存在。
 // 两边用同一把尺子量过，才可能对上。
-function normalize(s: string): string {
-  return s.replace(/[^\p{Script=Han}\p{L}\p{N}]/gu, '')
-}
+//
+// 这把尺子现在只有一份：subtitle.ts 里的 norm。
+// 字幕断句用的也是它 —— 两边各写一份，迟早会漂。
+const normalize = norm
 
 let indexText = ''
 const wordStart: number[] = []
@@ -105,17 +109,50 @@ const scenes = episode.scenes.map((s, si) => {
   return { id: 's' + (si + 1), template: s.template, startMs, endMs, props }
 })
 
+// ---- 字幕 ----
+//
+// 字幕不需要 AI 参与：讲稿原文管断句，词级时间戳管时间。
+// 所以它是 storyboard 这一步的副产物 —— 重跑一次 storyboard 就能改字幕，
+// 不用重新配音，也不用重新生成剧本。
+//
+// 传的是 parts 的**文字**而不是 partTimes：段的文字能给出确定的字符边界，
+// 用时刻反推词边界会被 TTS 的词条粒度坑（详见 subtitle.ts 里的注释）。
+const cues = buildCues(timings.text, timings.words, episode.parts.map((p) => p.text))
+
+// 覆盖率自检：所有字幕拼起来，必须正好是整篇讲稿的每一个字。
+//
+// 这条检查是为了防「静默漏字」—— 断句算法一旦吃掉一个字，
+// 画面上就会少一句话，而且没人会发现。所以让它在这里就撞墙。
+const covered = cues.map((c) => normalize(c.text)).join('')
+const expected = normalize(timings.text ?? '')
+if (covered !== expected) {
+  throw new Error(
+    '字幕和讲稿对不上（断句算法漏字或串位了）：\n' +
+      '  讲稿 ' + expected.length + ' 字，字幕拼起来 ' + covered.length + ' 字\n' +
+      '  第一处不同在 ' +
+      (() => {
+        for (let i = 0; i < Math.max(covered.length, expected.length); i++) {
+          if (covered[i] !== expected[i]) {
+            return '第 ' + i + ' 字：讲稿「' + (expected[i] ?? '（结束）') + '」vs 字幕「' + (covered[i] ?? '（结束）') + '」'
+          }
+        }
+        return '（长度不同但前缀一致）'
+      })(),
+  )
+}
+
 const storyboard = {
   durationMs: timings.durationMs,
   audioFile: timings.audioFile,
   provider: timings.provider,
   voice: timings.voice,
   scenes,
+  cues,
 }
 
 await writeFile(path.join(outRoot, 'storyboard.json'), JSON.stringify(storyboard, null, 2) + '\n')
 
-console.log('总时长: ' + storyboard.durationMs + 'ms  /  ' + scenes.length + ' 个场景')
+console.log('总时长: ' + storyboard.durationMs + 'ms  /  ' + scenes.length + ' 个场景  /  ' + cues.length + ' 条字幕')
 console.log('')
 console.log('--- 每段讲稿的开始时间 ---')
 partTimes.forEach((ms, i) => {
@@ -148,3 +185,15 @@ for (const [si, sc] of scenes.entries()) {
 }
 console.log('')
 console.log('storyboard.json 已生成')
+
+// 把字幕整条打出来：一眼就能看出有没有「一条字幕挂太久」「断句断在半句上」
+console.log('')
+console.log('--- 字幕 ---')
+for (const c of cues) {
+  const secs = ((c.endMs - c.startMs) / 1000).toFixed(1)
+  console.log(
+    '  [' + String(c.i).padStart(2) + '] ' +
+      String(c.startMs).padStart(6) + 'ms +' + secs + 's  ' +
+      c.lines.join(' / '),
+  )
+}

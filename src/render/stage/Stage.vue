@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import CodeTyping from '../scenes/CodeTyping.vue'
 import SlideBullets from '../scenes/SlideBullets.vue'
+import Subtitle, { type SubtitleVariant } from './Subtitle.vue'
 
 // 场景模板注册表。
 // 分镜里写的 template 名字，必须能在这里找到对应的组件。
@@ -25,7 +26,10 @@ type Storyboard = {
   durationMs: number
   audioFile: string
   scenes: Scene[]
+  cues?: Cue[]
 }
+
+type Cue = { i: number; startMs: number; endMs: number; text: string; lines: string[] }
 
 const storyboard = ref<Storyboard | null>(null)
 const audioEl = ref<HTMLAudioElement | null>(null)
@@ -48,6 +52,21 @@ onMounted(async () => {
 })
 
 const duration = computed(() => storyboard.value?.durationMs ?? 0)
+
+// 字幕是独立的一层：它跟着配音走，不属于任何场景，所以跨场景连续。
+const cues = computed<Cue[]>(() => storyboard.value?.cues ?? [])
+
+// 出片时字幕必须开（不然白做）。预览时也默认开着 ——
+// 不然打开 dev 看不见字幕，会以为没生效；想对比观感再关掉。
+const showSubs = ref(true)
+const subtitleOn = computed(() => showSubs.value && cues.value.length > 0)
+
+// 字幕外观。出片走 ?subs=xxx（shot.ts 拼上去的），预览可用 &subs=xxx 或下面那个开关。
+// 只影响样式，不参与任何时间计算。
+const VARIANTS: SubtitleVariant[] = ['pill', 'box', 'glass', 'bar']
+const asVariant = (v: string | null): SubtitleVariant | null =>
+  VARIANTS.includes(v as SubtitleVariant) ? (v as SubtitleVariant) : null
+const subtitleVariant = ref<SubtitleVariant>(asVariant(params.get('subs')) ?? 'pill')
 
 // 音频也在 out/render/audio 里，由服务器直接喂过来
 const audioSrc = computed(() => (storyboard.value ? './audio/' + storyboard.value.audioFile : ''))
@@ -135,12 +154,18 @@ async function seek(ms: number) {
           :t="localT"
           v-bind="current.props"
         />
+        <!-- 字幕盖在场景上面，和场景同属「由 t 决定画面」这一层 -->
+        <Subtitle v-if="subtitleOn" :t="t" :cues="cues" :variant="subtitleVariant" />
       </div>
     </div>
 
     <div class="bar" v-if="!isRender">
       <button @click="play">播放</button>
       <button @click="stop">暂停</button>
+      <label class="toggle"><input type="checkbox" v-model="showSubs" /> 字幕</label>
+      <select v-model="subtitleVariant" class="variant">
+        <option v-for="v in VARIANTS" :key="v" :value="v">{{ v }}</option>
+      </select>
       <input type="range" min="0" :max="duration" step="16" :value="t" @input="onScrub" />
       <span class="t">{{ Math.round(t) }} ms</span>
       <span class="scene">{{ current?.id }} / {{ current?.template }}</span>
@@ -173,6 +198,8 @@ async function seek(ms: number) {
   box-shadow: 0 8px 40px #000;
 }
 .frame {
+  /* 字幕层用 absolute 定位盖在场景上，所以这里是它的定位参照物 */
+  position: relative;
   width: 1920px;
   height: 1080px;
   transform: scale(0.5);
@@ -183,6 +210,22 @@ async function seek(ms: number) {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #bbb;
+  cursor: pointer;
+}
+.variant {
+  background: #222;
+  color: #ddd;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
 }
 .bar input {
   width: 420px;
