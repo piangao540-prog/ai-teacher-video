@@ -216,58 +216,69 @@
     },
     {
       "template": "CodeTyping",
-      "startPart": 20,
+      "startPart": 21,
       "props": {
         "fileName": "renderer.js",
         "lines": [
           {
             "code": "const markdownRenderer = {",
-            "part": 21
-          },
-          {
-            "code": "  image({ href, tokens }) {",
             "part": 22
           },
           {
-            "code": "    const text = tokens.map((t) => t.text).join('')",
+            "code": "  image({ href, tokens }) {",
             "part": 23
           },
           {
-            "code": "    const img = `<img src=\"${href}\" alt=\"${text}\"`",
+            "code": "    const text = tokens.map((t) => t.text).join('')",
             "part": 24
+          },
+          {
+            "code": "    const img = `<img src=\"${href}\" alt=\"${text}\"`",
+            "part": 25
           },
           {
             "code": "    return img + ' loading=\"lazy\" />'",
-            "part": 24
+            "part": 25
           },
           {
             "code": "  }",
-            "part": 24
+            "part": 25
           },
           {
             "code": "}",
-            "part": 24
+            "part": 25
           },
           {
             "code": "marked.use({ renderer: markdownRenderer })",
-            "part": 25
+            "part": 26
           }
         ]
       }
     },
     {
-      "template": "SlideBullets",
-      "startPart": 26,
+      "template": "Terminal",
+      "startPart": 27,
       "props": {
-        "title": "懒加载",
-        "bullets": [
+        "title": "看看渲染出来的 img",
+        "prompt": "$",
+        "lines": [
           {
-            "text": "loading 等于 lazy 是原生懒加载",
-            "part": 26
+            "text": "curl -s localhost:5173 | grep -c 'loading=\"lazy\"'",
+            "kind": "command",
+            "part": 27
           },
           {
-            "text": "进入视口才发请求，首屏请求减少",
-            "part": 27
+            "text": "128",
+            "kind": "output"
+          },
+          {
+            "text": "curl -s localhost:5173 | grep -o '<img[^>]*>' | head -1",
+            "kind": "command",
+            "part": 28
+          },
+          {
+            "text": "<img src=\"/api/img/12\" alt=\"封面\" loading=\"lazy\">",
+            "kind": "output"
           }
         ]
       }
