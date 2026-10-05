@@ -1,4 +1,5 @@
 import { copyFile, writeFile } from 'node:fs/promises'
+import { addLineNumbers, deriveEpisode, validateAuthored, type AuthoredEpisode } from './authoring'
 import { checkEditorial, validateEpisode, type Episode } from './episode'
 import { SYSTEM_PROMPT, buildUserPrompt } from './prompt'
 import { describeSource, persistTopic, resolveSource, type Source } from './source'
@@ -89,6 +90,21 @@ function extractJson(text: string): unknown {
 function repairHint(problems: string[]): string {
   const hints: string[] = []
 
+  // 格式用错了，先修格式再谈内容 —— 其它提示都建立在「这份 JSON 是创作格式」之上
+  if (problems.some((p) => p.includes('旧格式') || p.includes('不要写任何段号'))) {
+    hints.push(
+      '- 「不要写任何段号」：新格式里**没有** parts / startPart / part。' +
+        '讲稿就是每一处的 say，顺序就是「从上往下读 JSON」的顺序 —— ' +
+        '先读场景的 say，再读它里面每个元素的 say。段号由程序推导，写了反而对不上。' +
+        '请把整份 JSON 重写成 { "scenes": [ { "template": ..., "say": [……], "props": {……} } ] }。',
+    )
+  }
+  if (problems.some((p) => p.includes('一句话都没有') || p.includes('没有任何一句话可以跟'))) {
+    hints.push(
+      '- 「场景一句话都没有」/「要点没有可以跟的那句话」：**每个场景至少要有一句 say**；' +
+        '每条要点也要么自己写 say，要么让场景开头有一句 say（它就会跟着那一句一起出现）。',
+    )
+  }
   if (problems.some((p) => p.includes('永远不会出现'))) {
     hints.push(
       '- 「这个元素永远不会出现」：某个画面元素引用了下一场景里的段号。' +
@@ -110,19 +126,14 @@ function repairHint(problems: string[]): string {
         '      const scale = Math.min(1, maxSize / Math.max(w, h))',
     )
   }
-  if (problems.some((p) => p.includes('必须严格递增'))) {
-    hints.push(
-      '- 「段号必须严格递增」：两条要点不能指向同一段。**要么给它们各自写一段讲解**，' +
-        '要么把这两条要点合并成一条。不要指望它们同时出现。',
-    )
-  }
-  if (problems.some((p) => p.includes('行代码，超过'))) {
+  if (problems.some((p) => p.includes('行，超过'))) {
     hints.push('- 「代码行太多」：**删掉次要的行**。代码演示不是把整个文件贴出来，只留最关键的那几行。')
   }
   if (problems.some((p) => p.includes('没有 part'))) {
     hints.push(
-      '- 「某个元素没有 part」：**在 parts 里补一段专门讲它的讲解**，再把这个元素的 part 指向那一段。' +
-        '或者，如果它不重要，就把它删掉。',
+      '- 「要点没有 part」：说明这条要点和它所在的场景都没写 say。' +
+        '**给它自己写一句 say**，或者给场景开头写一句 say（它就会跟着那一句一起出现）。' +
+        '再不然，如果它不重要，就把它删掉。',
     )
   }
   if (problems.some((p) => p.includes('铺垫行'))) {
@@ -132,11 +143,14 @@ function repairHint(problems: string[]): string {
         '但它只能放在代码块**最前面**，而且一个代码块最多两行。',
     )
   }
-  if (problems.some((p) => p.includes('第 N 行对不上'))) {
+  // 这里原来有一条「第 N 行对不上」的提示。行号收归程序（addLineNumbers）之后，
+  // **它在 pnpm plan 这条路上永远触发不了**：校验跑在补行号之前，那时讲稿里没有行号；
+  // 模型自己写行号则会被 validateAuthored 直接拦住（见下面那条）。
+  // 留着一条永远不会被匹配上的提示，正是 README 里记过的「写了但没生效」的毛病。
+  if (problems.some((p) => p.includes('行号由程序'))) {
     hints.push(
-      '- 「第 N 行对不上」：讲稿里的「第 N 行」数的是**写了 part 的行**。' +
-        '对不上通常是因为有一行（import / setup 这种）白占了一个段号 —— ' +
-        '把那一行改成铺垫行（不写 part），后面的行就各归各位了。',
+      '- 「行号由程序补」：不要说「第一行」「第二行」。你只消写这一行在做什么，' +
+        '程序会按顺序自己补上「第 N 行，」—— 把句子开头那个「第 N 行，」删掉就行。',
     )
   }
   if (problems.some((p) => p.includes('上限'))) {
@@ -210,11 +224,26 @@ for (attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   const raw = await callLLM(messages)
 
   try {
-    const parsed = extractJson(raw) as Episode
-    problems = [...validateEpisode(parsed), ...checkEditorial(parsed)]
-    if (problems.length === 0) {
-      episode = parsed
-      break
+    // 模型产出的是「创作格式」（scenes 里直接写 say，没有段号）；
+    // 落盘和渲染要的是「渲染格式」（parts + startPart + part）。
+    // 段号在这里推导 —— 所以模型没有可数错的东西，见 authoring.ts 的头注释。
+    const parsed = extractJson(raw)
+    const authored = validateAuthored(parsed)
+
+    if (authored.length > 0) {
+      // 创作格式本身就不对（多半是退回了旧格式），先修格式再谈内容：
+      // 把一份旧格式硬推导出来只会报出一堆「段号越界」之类的次生错误。
+      problems = authored
+    } else {
+      const derived = deriveEpisode(parsed as AuthoredEpisode)
+      problems = [...validateEpisode(derived), ...checkEditorial(derived)]
+      if (problems.length === 0) {
+        // 行号在**过了校验之后**才补：校验管的是模型写的那份字数，
+        // 而「第 N 行，」是程序加的 4 个字 —— 先补再校验会让模型为它改不对的东西挨重试。
+        // 见 authoring.ts 里 addLineNumbers 的注释。
+        episode = addLineNumbers(derived)
+        break
+      }
     }
   } catch (e) {
     problems = ['JSON 解析失败：' + String(e)]

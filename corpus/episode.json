@@ -1,49 +1,88 @@
 {
   "parts": [
     {
-      "text": "Vue3 的响应式，靠的是 Proxy 代理对象。"
+      "text": "Vue3 的响应式原理，听起来很玄，其实只解决一个问题。"
     },
     {
-      "text": "那它到底解决了什么问题呢？"
+      "text": "数据变了，界面怎么自己跟着变，不用你手动操作 DOM。"
     },
     {
-      "text": "以前 Vue2 用 defineProperty，改数组下标就监听不到。"
+      "text": "今天讲透三件事，让你以后不再踩坑。"
     },
     {
-      "text": "Vue3 换成 Proxy，整个对象都能被拦截。"
+      "text": "第一，ref 和 reactive 到底有什么区别。"
     },
     {
-      "text": "接下来看怎么收集依赖。"
+      "text": "第二，依赖收集究竟发生在什么时候。"
     },
     {
-      "text": "第一行，用 reactive 包一个对象。"
+      "text": "第三，为什么解构赋值会把响应式弄丢。"
     },
     {
-      "text": "第二行，effect 里读取了 state.count。"
+      "text": "先看第一个问题，ref 和 reactive 的区别。"
     },
     {
-      "text": "读取时触发 get，把 effect 收集进依赖。"
+      "text": "第一行，用 ref 定义一个计数器，初始值是 0。"
     },
     {
-      "text": "第三行，修改 state.count 会触发 set。"
+      "text": "第二行，取值的时候必须加 value，这是 ref 的规矩。"
     },
     {
-      "text": "set 里把收集到的 effect 重新执行一遍。"
+      "text": "第三行，用 reactive 定义一个对象，里面放一个 n。"
     },
     {
-      "text": "这就是响应式的完整闭环。"
+      "text": "第四行，对象属性可以直接访问，不需要加 value。"
     },
     {
-      "text": "最后看一个最容易搞错的地方。"
+      "text": "一句话总结，ref 适合简单值，reactive 适合对象。"
     },
     {
-      "text": "直接解构 reactive 对象，会丢掉响应式。"
+      "text": "接下来看第二个问题，依赖收集发生在什么时候。"
     },
     {
-      "text": "因为解构拿到的是普通的值，不是代理。"
+      "text": "关键在于，读取属性时会触发 get，顺便把当前的副作用记下来。"
     },
     {
-      "text": "想保留响应式，可以用 toRefs 包一层。"
+      "text": "第一行，effect 注册一个副作用函数，它会立刻执行一次。"
+    },
+    {
+      "text": "第二行，函数里读取了 state.n，这一步就完成了依赖收集。"
+    },
+    {
+      "text": "第三行，修改 state.n，触发 set，通知刚才收集到的副作用。"
+    },
+    {
+      "text": "第四行，副作用重新执行，界面因此自动刷新。"
+    },
+    {
+      "text": "记住，先读后写，读的时候收集，写的时候触发。"
+    },
+    {
+      "text": "最后看第三个问题，为什么解构会丢响应式。"
+    },
+    {
+      "text": "第一行，把 state 解构出来，n 变成了一个普通的数字。"
+    },
+    {
+      "text": "第二行，打印 n，它和原来的响应式对象已经没关系了。"
+    },
+    {
+      "text": "因为解构只是取值，取出来的值不会保留追踪能力。"
+    },
+    {
+      "text": "想保留响应式，可以用 toRefs 把每个属性变成 ref。"
+    },
+    {
+      "text": "第一行，用 toRefs 把 state 转成一组 ref。"
+    },
+    {
+      "text": "第二行，解构出来的 n 依然是响应式的，可以放心用。"
+    },
+    {
+      "text": "这就是解构丢响应式的真相，也是面试常考的点。"
+    },
+    {
+      "text": "把这三件事串起来，响应式就不再神秘了。"
     }
   ],
   "scenes": [
@@ -54,77 +93,171 @@
         "title": "Vue3 响应式原理",
         "bullets": [
           {
-            "text": "靠 Proxy 代理对象",
-            "part": 0
-          },
-          {
-            "text": "Vue2 改数组下标监听不到",
-            "part": 2
-          },
-          {
-            "text": "整个对象都能被拦截",
+            "text": "ref 和 reactive 的区别",
             "part": 3
+          },
+          {
+            "text": "依赖收集发生在什么时候",
+            "part": 4
+          },
+          {
+            "text": "为什么解构会丢响应式",
+            "part": 5
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 4,
+      "startPart": 6,
       "props": {
-        "fileName": "reactive-demo.js",
+        "fileName": "ref-vs-reactive.ts",
         "lines": [
           {
-            "code": "import { reactive, effect } from 'vue'"
+            "code": "import { ref, reactive } from 'vue'"
           },
           {
-            "code": "const state = reactive({ count: 0 })",
-            "part": 5
+            "code": "const count = ref(0)",
+            "part": 7
           },
           {
-            "code": "effect(() => console.log(state.count))",
-            "part": 6
-          },
-          {
-            "code": "state.count = 1  // 触发 set，重新打印 1",
+            "code": "count.value  // 0",
             "part": 8
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 9,
-      "props": {
-        "title": "响应式闭环",
-        "bullets": [
+          },
           {
-            "text": "set 重新执行 effect",
+            "code": "const state = reactive({ n: 0 })",
             "part": 9
           },
           {
-            "text": "这就是完整的闭环",
+            "code": "state.n  // 0",
             "part": 10
           }
         ]
       }
     },
     {
-      "template": "CodeTyping",
+      "template": "SlideBullets",
       "startPart": 11,
       "props": {
-        "fileName": "toRefs-demo.js",
+        "title": "一句话总结",
+        "bullets": [
+          {
+            "text": "ref 适合简单值，访问要加 value",
+            "part": 11
+          },
+          {
+            "text": "reactive 适合对象，属性直接访问",
+            "part": 11
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 12,
+      "props": {
+        "fileName": "effect.ts",
         "lines": [
           {
-            "code": "const state = reactive({ count: 0 })"
+            "code": "import { reactive, effect } from 'vue'"
           },
           {
-            "code": "const { count } = state  // 丢失响应式",
-            "part": 12
-          },
-          {
-            "code": "const { count } = toRefs(state)  // 保留响应式",
+            "code": "const state = reactive({ n: 0 })",
             "part": 14
+          },
+          {
+            "code": "effect(() => console.log(state.n))",
+            "part": 15
+          },
+          {
+            "code": "state.n = 1  // 再次打印 1",
+            "part": 16
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 17,
+      "props": {
+        "title": "依赖收集的口诀",
+        "bullets": [
+          {
+            "text": "读属性时收集依赖",
+            "part": 18
+          },
+          {
+            "text": "写属性时触发副作用",
+            "part": 18
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 19,
+      "props": {
+        "fileName": "destructure.ts",
+        "lines": [
+          {
+            "code": "import { reactive } from 'vue'"
+          },
+          {
+            "code": "const state = reactive({ n: 0 })",
+            "part": 20
+          },
+          {
+            "code": "const { n } = state",
+            "part": 21
+          },
+          {
+            "code": "console.log(n)  // 普通数字",
+            "part": 22
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 23,
+      "props": {
+        "fileName": "to-refs.ts",
+        "lines": [
+          {
+            "code": "import { reactive, toRefs } from 'vue'"
+          },
+          {
+            "code": "const state = reactive({ n: 0 })",
+            "part": 24
+          },
+          {
+            "code": "const { n } = toRefs(state)",
+            "part": 25
+          },
+          {
+            "code": "n.value = 1  // 依然响应式",
+            "part": 26
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 27,
+      "props": {
+        "title": "记住这三件事",
+        "bullets": [
+          {
+            "text": "ref 与 reactive 各管一摊",
+            "part": 27
+          },
+          {
+            "text": "读时收集，写时触发",
+            "part": 27
+          },
+          {
+            "text": "解构要用 toRefs 兜底",
+            "part": 27
           }
         ]
       }

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "plan": "tsx src/plan/plan.ts",
+    "check": "tsx src/plan/authoring.check.ts",
     "typecheck": "vue-tsc --noEmit",
     "shot": "tsx src/render/shot.ts",
     "shot:cue": "tsx src/render/shot.ts --cue",
