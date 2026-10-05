@@ -142,7 +142,15 @@ export const LIMITS = {
   maxLines: 8,
   maxCodeChars: 60,
   maxPartChars: 55,
-  // 全片总字数。按每秒 5.3 个字估算，900 字约等于 2 分 50 秒。
+  // 全片总字数的上下限。按每秒 5.3 个字估算：900 字约 2 分 50 秒，300 字约 57 秒。
+  //
+  // 下限为什么也要校验：提示词里一直写着「大约 300 到 900 字」，
+  // 但以前只查了上限 —— 按 README「提示词里写了却没校验的约束，等于没写」，
+  // 那个 300 一直是句空话。
+  // 文章模式下这不出事（一篇文章的体量天然把产出顶上去），
+  // 但主题模式下没有东西撑长度，模型只讲 40 秒就收工是完全可能的，
+  // 而旧校验会一声不吭地放行。
+  minTotalChars: 300,
   maxTotalChars: 900,
   // 一个场景最多覆盖几段讲稿。
   // 一个场景挂太久（画面一动不动几十秒），观众会以为卡住了。
@@ -157,7 +165,19 @@ export function checkEditorial(episode: Episode): string[] {
     problems.push(
       '讲稿总共 ' + total + ' 个字，超过 ' + LIMITS.maxTotalChars + ' 字上限。' +
         '按每秒 5.3 个字算，现在是约 ' + Math.round(total / 5.3) + ' 秒，上限约 ' + Math.round(LIMITS.maxTotalChars / 5.3) + ' 秒。' +
-        '**必须砍内容**：只保留文章里最有价值的三个点，次要的细节合并或者直接删掉。',
+        '**必须砍内容**：只保留最有价值的 2 到 3 个点，次要的细节合并或者直接删掉。',
+    )
+  }
+
+  // 太短。文案里刻意**避开「上限」二字** —— repairHint 用 p.includes('上限')
+  // 匹配「装不下」那一类问题，撞上会给出完全不相关的提示。
+  if (total < LIMITS.minTotalChars) {
+    problems.push(
+      '讲稿总共只有 ' + total + ' 个字，太短了。按每秒 5.3 个字算约 ' + Math.round(total / 5.3) + ' 秒，' +
+        '下限是 ' + LIMITS.minTotalChars + ' 字（约 ' + Math.round(LIMITS.minTotalChars / 5.3) + ' 秒）。' +
+        '**内容不够**：讲 2 到 3 个点，每个点都要有展开 —— ' +
+        '它解决什么问题、最小的例子是什么、哪里最容易搞错。' +
+        '宁可讲透一个点，也不要三个点各说一句。',
     )
   }
 
