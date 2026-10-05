@@ -36,7 +36,7 @@ b5980b9  perf: 渲染提速 2.7 倍（静止帧复用）
 38ae25e  docs: 加 HANDOFF.md（换会话交接用）+ 修 README 过期的耗时
 96eb193  perf: 代码场景也能复用（判据改成帧签名）
 19e0ec2  feat: 加第三个画面模板 Terminal（终端演示）
-24a6ec3  feat: 第 7 个场景改用 Terminal，并修掉 s6/s7 的音画错位
+bbee276  feat: 第 7 个场景改用 Terminal，并修掉 s6/s7 的音画错位
 ```
 
 **注意**：`out/render/final.mp4` 是旧的（没有字幕）。要出片跑 `pnpm video`。
