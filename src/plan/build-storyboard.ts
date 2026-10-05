@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { validateEpisode, type Episode } from './episode'
 import { buildCues, norm } from './subtitle'
+import { toSrt, toVtt } from './subtitle-export'
 // ★ 打字速度从 sceneState.ts import，不再在这里抄一份。
 //   这个常量决定「第几个字符什么时候出现」，分镜和渲染必须是同一个值 ——
 //   以前两边各写一个 45、靠一句注释维持，正是复用判据踩过的那种坑。
@@ -172,7 +173,22 @@ const storyboard = {
 
 await writeFile(path.join(outRoot, 'storyboard.json'), JSON.stringify(storyboard, null, 2) + '\n')
 
+// ---- 外挂字幕（.srt / .vtt）----
+//
+// 顺手写掉，不单独开一条命令：数据就是上面的 cues，重跑一次 storyboard
+// 两个文件跟着刷新，不可能出现「改了字幕忘了导」。
+//
+// 写文件走 Node 的 writeFile（UTF-8 **不带 BOM**）。
+// 别改成用 PowerShell 的 `-Encoding utf8` 中转 —— 那会写进 BOM，
+// 有些播放器会把 BOM 当成正文的第一个字符，字幕开头多一个乱码方块。
+// （README「踩过的坑」里记着这个，ffmpeg 的 concat 列表就是这么坏的。）
+const srtPath = path.join(outRoot, 'subtitles.srt')
+const vttPath = path.join(outRoot, 'subtitles.vtt')
+await writeFile(srtPath, toSrt(cues))
+await writeFile(vttPath, toVtt(cues))
+
 console.log('总时长: ' + storyboard.durationMs + 'ms  /  ' + scenes.length + ' 个场景  /  ' + cues.length + ' 条字幕')
+console.log('外挂字幕: subtitles.srt / subtitles.vtt（' + cues.length + ' 条，UTF-8 无 BOM）')
 console.log('')
 console.log('--- 每段讲稿的开始时间 ---')
 partTimes.forEach((ms, i) => {
