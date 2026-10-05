@@ -140,6 +140,10 @@ export const LIMITS = {
   maxBullets: 6,
   maxBulletChars: 22,
   maxLines: 8,
+  // 一个代码块里最多几行「铺垫行」—— 没写 part、讲稿里不专门讲它的行（import、setup）。
+  // 定成 2 是照着真实代码块来的：一句 import 加一行 setup。
+  // 再多就说明模型在拿铺垫行当「不写讲解」的出口了。
+  maxPreambleLines: 2,
   maxCodeChars: 60,
   maxPartChars: 55,
   // 全片总字数的上下限。按每秒 5.3 个字估算：900 字约 2 分 50 秒，300 字约 57 秒。
@@ -261,26 +265,119 @@ export function checkEditorial(episode: Episode): string[] {
                 '（输出行不用写 part —— 它紧跟在自己那条命令后面出现。）',
             )
           }
-        } else {
-          // 代码：只有「纯收尾符号」的行才可以不写 part。
-          // 其他每一行都必须有 part，因为代码必须「讲一行、出现一行」——
-          // 少了 part 的行会按打字速度自己冒出来（每行约 1.5 秒），
-          // 而讲解早就讲到别处去了，这就是音画不同步。
-          const isCloser = /^[\s}\]\);,]*$/.test(body)
-          if (typeof l.part !== 'number' && !isCloser) {
-            problems.push(
-              tag + ' lines[' + j + ']「' + body.trim() + '」没有 part。' +
-                '**除了纯收尾符号，每一行代码都要写 part**，也就是讲稿里要有一段专门讲这一行。',
-            )
-          }
         }
 
         if (body.length > LIMITS.maxCodeChars) {
           problems.push(tag + ' lines[' + j + '] 有 ' + body.length + ' 个字符，超过 ' + LIMITS.maxCodeChars + ' 上限，会折行。')
         }
       })
+
+      // 代码行的「讲解 ↔ 出现」契约。终端已有自己的一套（命令要 part、输出不要），
+      // 所以这里只管 CodeTyping。
+      if (!isTerminal) checkCodeNarration(tag, lines, episode, problems)
     }
   })
 
   return problems
+}
+
+// ---- 代码行的「讲解 ↔ 出现」契约 ----
+//
+// 这是全片最容易翻车、也最难查的一块，所以单独一个函数。
+//
+// ★ 为什么必须给「铺垫行」留出口
+//
+//   以前的要求是「除了纯收尾符号，每一行代码都要有自己的 part」。
+//   可 import、setup 这种**只为交代上下文**的行，讲稿里根本没有、也不该有
+//   专门讲它的句子（没人想看「下面我们 import 两个 API」）。
+//   实测模型不会因此失败 —— 它会**偷一个本来属于别的行的段号**把规则圆过去，
+//   于是从那一行往后，**每个画面元素都晚一格**。
+//   而段号合法、递增、不越界，validateEpisode 一条都不报。
+//
+//   这不是模型不听话，是规则本身做不到。所以：给它一个明确的出口，
+//   再把这个出口围上栏杆（位置 + 数量）。
+//
+// ★ 为什么还要查「第 N 行」
+//
+//   上面那道栏杆防的是「起因」，防不了「已经写歪了」。
+//   「漂一格」属于语义层，便宜规则查不出来 —— 但**用序数说话的那一半能查**：
+//   讲稿里说「第三行」，那一段就必须挂在写了 part 的第 3 行上。
+//   今天这个 bug 正是这么露的马脚：import 白占了一个段号，
+//   「第三行」于是挂到了第 4 个有 part 的行上。
+function checkCodeNarration(
+  tag: string,
+  lines: Array<{ code?: string; part?: number }>,
+  episode: Episode,
+  problems: string[],
+): void {
+  const bodyOf = (l: { code?: string }): string => l.code ?? ''
+  const hasPart = (l: { part?: number }): boolean => typeof l.part === 'number'
+  // 纯收尾符号：} / }) / ); 这类，没有讲解也说得过去
+  const isCloser = (b: string): boolean => /^[\s}\]\);,]*$/.test(b)
+  // 铺垫行：没写 part，又不是纯收尾符号 —— 只为交代上下文，讲稿里没有专门讲它的那句
+  const isPreamble = (l: { code?: string; part?: number }): boolean => !hasPart(l) && !isCloser(bodyOf(l))
+
+  // ---- 铺垫行的栏杆：数量 + 位置 ----
+  const preambles = lines.map((l, j) => (isPreamble(l) ? j : -1)).filter((j) => j >= 0)
+  const firstParted = lines.findIndex(hasPart)
+
+  if (preambles.length > LIMITS.maxPreambleLines) {
+    problems.push(
+      tag + ' 有 ' + preambles.length + ' 行没写 part（按铺垫行算），最多只能是 ' + LIMITS.maxPreambleLines + ' 行。' +
+        '**铺垫行是给 import、setup 这类「讲稿里不专门讲它」的行留的出口，不是不写讲解的通道**：' +
+        '没有讲解的行只能自己按打字速度冒出来，观众听到的和看到的就错开了。' +
+        '其余的行都要写 part，并在讲稿里补一段专门讲它的讲解。',
+    )
+  }
+  for (const j of preambles) {
+    if (firstParted >= 0 && j > firstParted) {
+      problems.push(
+        tag + ' lines[' + j + ']「' + bodyOf(lines[j]!).trim() + '」没写 part（按铺垫行算），' +
+          '但它排在已经写了 part 的行后面。' +
+          '**铺垫行只能出现在代码块最前面** —— 它是「正文还没开始」的上下文，' +
+          '会跟着场景开头那句过渡一起出现。排在中间就无处安放了：' +
+          '要么给它写 part（讲稿里补一句专门讲它），要么把它挪到最前面。',
+      )
+    }
+  }
+
+  // ---- 「第 N 行」自洽 ----
+  // 讲稿说「第 N 行」，那一段就必须挂在**写了 part 的第 N 行**上（铺垫行不数进去）。
+  const ordinalOfPart = new Map<number, number>()
+  let nth = 0
+  for (const l of lines) {
+    if (!hasPart(l)) continue
+    nth += 1
+    if (!ordinalOfPart.has(l.part!)) ordinalOfPart.set(l.part!, nth)
+  }
+
+  for (const [part, ordinal] of ordinalOfPart) {
+    const text = episode.parts[part]?.text ?? ''
+    // 一句话里出现两个行号时，多半是在比较两行（「第一行和第二行合并成一行」），不去猜。
+    if (text.match(ALL_NTH_LINE)?.length !== 1) continue
+    const n = parseNthLine(text)
+    if (n === null || n === ordinal) continue
+    problems.push(
+      '**第 N 行对不上**：第 ' + part + ' 段讲稿说「第 ' + n + ' 行」，' +
+        '但它挂在**写了 part 的第 ' + ordinal + ' 行**上，相差 ' + Math.abs(ordinal - n) + ' 行。' +
+        '多半是有一行（import、setup 这种）白占了一个段号。' +
+        '那一行讲稿里没有专门讲它，就**不要给它写 part**（当铺垫行），' +
+        '让「第 N 行」数的是真正讲过的行。铺垫行只能放在代码块最前面。',
+    )
+  }
+}
+
+// 「第 N 行」：N 可以是中文数字（代码块最多 8 行，单个字够用）或阿拉伯数字。
+const ALL_NTH_LINE = /第\s*([一二三四五六七八九十]|\d+)\s*行/g
+const NTH_LINE = /第\s*([一二三四五六七八九十]|\d+)\s*行/
+const CN_NUM: Record<string, number> = {
+  一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10,
+}
+
+function parseNthLine(text: string): number | null {
+  const m = NTH_LINE.exec(text)
+  if (!m) return null
+  const s = m[1]!
+  if (/^\d+$/.test(s)) return Number(s)
+  return CN_NUM[s] ?? null
 }

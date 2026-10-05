@@ -89,6 +89,7 @@ export async function buildUserPrompt(source: string, kind: SourceKind): Promise
   "props": {
     "fileName": "demo.js",
     "lines": [
+      { "code": "import { ref } from 'vue'" },
       { "code": "const a = ref(0)", "part": 5 },
       { "code": "console.log(a.value)", "part": 6 },
       { "code": "  }" }
@@ -121,10 +122,19 @@ export async function buildUserPrompt(source: string, kind: SourceKind): Promise
    - 场景之间的 startPart 必须**严格递增**。
    一句话：**从上往下读，段号只能变大，不能变小、不能相等。**
 
-2. **代码必须「讲一行、出现一行」**：除了纯收尾符号（} / }) / );），
-   每一行代码都要有自己的 part，而且讲稿里那一段要讲的**正是这一行代码**。
-   最常见的致命错误：代码写了 7 行，讲稿却只讲了 4 句 —— 剩下 3 行会自己按打字速度冒出来，
-   声音和画面就彻底错开了。代码不多写、讲解不缺席，两边数量要对上。
+2. **代码必须「讲一行、出现一行」**：每一行代码都要有自己的 part，
+   而且那一段讲稿要讲的**正是这一行代码**。
+   最常见的致命错误：代码写了 7 行，讲稿却只讲了 4 句 —— 剩下的行会自己按打字速度
+   冒出来，声音和画面就彻底错开了。
+   只有两种行可以不写 part，除此之外每一行都必须有：
+   - **纯收尾符号**（} / }) / );），放在哪一行都行；
+   - **铺垫行**：import、setup 这种只为交代上下文、讲稿里不该专门讲它的行。
+     直接写 { "code": "..." }（不写 part），它会跟着场景开头那句过渡一起出现。
+     **一个代码块最多 2 行，而且只能放在最前面**（所有写了 part 的行之前）。
+     **绝对不要**为了让「每行都有 part」成立，把铺垫行挂到一个本来属于别的行的段号上 ——
+     那会让它后面**每一行都晚一格**，而且校验查不出来。
+   **「第 N 行」数的是「写了 part 的第 N 行」**（铺垫行不数进去）：
+   你说「第三行」，那一段就必须挂在写了 part 的第 3 行上。
    Terminal 同理：**每条命令都要有自己的 part**，输出行不写 part（它紧跟命令之后出现）。
 
 3. **画面装得下的上限（超过直接校验失败）**：
@@ -152,6 +162,9 @@ export async function buildUserPrompt(source: string, kind: SourceKind): Promise
    Terminal 讲的是运行结果，CodeTyping 讲的是代码本身，别拿 Terminal 去念代码。
 
 # 一个已经做好的范例
+
+**这个范例只用来看形状**（JSON 长什么样、段号怎么对），它的篇幅比正式产出短得多。
+**别照着它的长度写** —— 上面的目标是 800 到 900 字。
 
 ${example}
 

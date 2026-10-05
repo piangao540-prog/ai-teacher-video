@@ -32,6 +32,7 @@
       "props": {
         "fileName": "ref-vs-reactive.ts",
         "lines": [
+          { "code": "import { ref, reactive } from 'vue'" },
           { "code": "const count = ref(0)", "part": 5 },
           { "code": "count.value  // 0", "part": 6 },
           { "code": "const state = reactive({ n: 0 })", "part": 7 },

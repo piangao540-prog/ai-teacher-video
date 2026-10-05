@@ -125,6 +125,20 @@ function repairHint(problems: string[]): string {
         '或者，如果它不重要，就把它删掉。',
     )
   }
+  if (problems.some((p) => p.includes('铺垫行'))) {
+    hints.push(
+      '- 「铺垫行」：import、setup 这种**讲稿里不专门讲它**的行，**不要给它写 part** —— ' +
+        '直接写 { "code": "..." }，它会跟着场景开头那句过渡一起出现。' +
+        '但它只能放在代码块**最前面**，而且一个代码块最多两行。',
+    )
+  }
+  if (problems.some((p) => p.includes('第 N 行对不上'))) {
+    hints.push(
+      '- 「第 N 行对不上」：讲稿里的「第 N 行」数的是**写了 part 的行**。' +
+        '对不上通常是因为有一行（import / setup 这种）白占了一个段号 —— ' +
+        '把那一行改成铺垫行（不写 part），后面的行就各归各位了。',
+    )
+  }
   if (problems.some((p) => p.includes('上限'))) {
     hints.push('- 「超过上限」：画面或一口气装不下。拆页、删行、拆句 —— 把内容真的改短。')
   }
@@ -168,11 +182,14 @@ function printEpisodeReview(ep: Episode): void {
     const lines = props.lines as Array<{ code?: string; text?: string; kind?: string; part?: number }>
     for (const l of lines) {
       const part = l.part
+      const body = l.code ?? l.text ?? ''
       const narration =
         typeof part === 'number'
           ? (ep.parts[part]?.text ?? '⚠ 引用了不存在的 part ' + part)
-          : '（无讲解，紧接上一行出现）'
-      console.log('  ' + (l.kind === 'command' ? '$ ' : '') + (l.code ?? l.text ?? ''))
+          : /^[\s}\]\);,]*$/.test(body)
+            ? '（收尾符号，紧接上一行出现）'
+            : '（铺垫行：讲稿里不专门讲它，跟着场景开头那句过渡出现）'
+      console.log('  ' + (l.kind === 'command' ? '$ ' : '') + body)
       console.log('      └ ' + narration)
     }
   })

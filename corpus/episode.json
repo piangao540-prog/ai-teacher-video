@@ -75,8 +75,7 @@
         "fileName": "reactive-demo.js",
         "lines": [
           {
-            "code": "import { reactive, effect } from 'vue'",
-            "part": 4
+            "code": "import { reactive, effect } from 'vue'"
           },
           {
             "code": "const state = reactive({ count: 0 })",
@@ -117,8 +116,7 @@
         "fileName": "toRefs-demo.js",
         "lines": [
           {
-            "code": "const state = reactive({ count: 0 })",
-            "part": 11
+            "code": "const state = reactive({ count: 0 })"
           },
           {
             "code": "const { count } = state  // 丢失响应式",
