@@ -6,9 +6,6 @@
   "scripts": {
     "dev": "vite",
     "plan": "tsx src/plan/plan.ts",
-    "tts": "tsx src/cli/index.ts tts",
-    "render": "tsx src/cli/index.ts render",
-    "build:video": "tsx src/cli/index.ts build",
     "typecheck": "vue-tsc --noEmit",
     "shot": "tsx src/render/shot.ts",
     "shot:cue": "tsx src/render/shot.ts --cue",
