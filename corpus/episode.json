@@ -1,103 +1,49 @@
 {
   "parts": [
     {
-      "text": "给博客加图片，本以为很简单，结果做出一条完整管线。"
+      "text": "Vue3 的响应式，靠的是 Proxy 代理对象。"
     },
     {
-      "text": "这条管线有三层：上传前压缩、上传后存储、渲染时懒加载。"
+      "text": "那它到底解决了什么问题呢？"
     },
     {
-      "text": "先说第一层，为什么上传前一定要压缩。"
+      "text": "以前 Vue2 用 defineProperty，改数组下标就监听不到。"
     },
     {
-      "text": "手机拍的照片动辄三五兆，原样上传存储和加载都受不了。"
+      "text": "Vue3 换成 Proxy，整个对象都能被拦截。"
     },
     {
-      "text": "我的做法是用 canvas 在前端把图压小再传。"
+      "text": "接下来看怎么收集依赖。"
     },
     {
-      "text": "第一行，取出原图的宽和高，后面要用。"
+      "text": "第一行，用 reactive 包一个对象。"
     },
     {
-      "text": "第二行，算出缩放比例，最长边压到九百像素，小图不放大。"
+      "text": "第二行，effect 里读取了 state.count。"
     },
     {
-      "text": "第三、四行，按比例设置 canvas 的宽和高。"
+      "text": "读取时触发 get，把 effect 收集进依赖。"
     },
     {
-      "text": "第五行，把原图画进 canvas，完成重绘。"
+      "text": "第三行，修改 state.count 会触发 set。"
     },
     {
-      "text": "第六行，导出成 dataURL，格式和画质可以自己定。"
+      "text": "set 里把收集到的 effect 重新执行一遍。"
     },
     {
-      "text": "PNG 保留透明但体积大，JPEG 有损压缩但会丢透明。"
+      "text": "这就是响应式的完整闭环。"
     },
     {
-      "text": "实测一张纯色图从一百五十四KB压到零点六KB。"
+      "text": "最后看一个最容易搞错的地方。"
     },
     {
-      "text": "另一张复杂壁纸从六百五十九KB压到八十一KB，少了百分之八十七。"
+      "text": "直接解构 reactive 对象，会丢掉响应式。"
     },
     {
-      "text": "第二层，图片存哪？我的后端跑在 Vercel 上。"
+      "text": "因为解构拿到的是普通的值，不是代理。"
     },
     {
-      "text": "serverless 没有持久磁盘，存本地文件实例一换就丢。"
-    },
-    {
-      "text": "所以我把 base64 字符串直接存进 MySQL 的 images 表。"
-    },
-    {
-      "text": "前端压缩成 base64，后端校验后入库，再返回图片 URL。"
-    },
-    {
-      "text": "生产环境一般用对象存储，但博客项目这样最简单也够用。"
-    },
-    {
-      "text": "代价是数据库会变大，所以后端必须做大小兜底。"
-    },
-    {
-      "text": "超过两百万字符的 base64 直接拒绝。"
-    },
-    {
-      "text": "第三层，渲染端用 marked 渲染文章内容。"
-    },
-    {
-      "text": "我给图片渲染器加了一个属性，实现原生懒加载。"
-    },
-    {
-      "text": "第一行，定义一个渲染器对象。"
-    },
-    {
-      "text": "第二行，image 方法从 token 里解构出 href 和 tokens。"
-    },
-    {
-      "text": "第三行，把 tokens 里的文字拼成 alt 描述。"
-    },
-    {
-      "text": "第四行，返回 img 标签，加上 loading 等于 lazy。"
-    },
-    {
-      "text": "第五行，用 marked 点 use 把这个渲染器注册进去。"
-    },
-    {
-      "text": "loading 等于 lazy 是浏览器原生懒加载。"
-    },
-    {
-      "text": "图片进入视口才发请求，首屏只加载第一屏的图。"
-    },
-    {
-      "text": "往下滚才逐个加载，首屏请求数明显减少。"
-    },
-    {
-      "text": "最后总结这条管线的三层思路。"
-    },
-    {
-      "text": "压缩控制源头体积，前后端各校验一次。"
-    },
-    {
-      "text": "前端防手滑，后端防坏人，懒加载控制请求时机。"
+      "text": "想保留响应式，可以用 toRefs 包一层。"
     }
   ],
   "scenes": [
@@ -105,14 +51,18 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "博客图片管线",
+        "title": "Vue3 响应式原理",
         "bullets": [
           {
-            "text": "上传前压缩",
+            "text": "靠 Proxy 代理对象",
+            "part": 0
+          },
+          {
+            "text": "Vue2 改数组下标监听不到",
             "part": 2
           },
           {
-            "text": "上传后存储",
+            "text": "整个对象都能被拦截",
             "part": 3
           }
         ]
@@ -122,184 +72,61 @@
       "template": "CodeTyping",
       "startPart": 4,
       "props": {
-        "fileName": "compress.js",
+        "fileName": "reactive-demo.js",
         "lines": [
           {
-            "code": "const w = img.width, h = img.height",
+            "code": "import { reactive, effect } from 'vue'",
+            "part": 4
+          },
+          {
+            "code": "const state = reactive({ count: 0 })",
             "part": 5
           },
           {
-            "code": "const scale = Math.min(1, maxSize / Math.max(w, h))",
+            "code": "effect(() => console.log(state.count))",
             "part": 6
           },
           {
-            "code": "canvas.width = w * scale",
-            "part": 7
-          },
-          {
-            "code": "canvas.height = h * scale",
-            "part": 7
-          },
-          {
-            "code": "ctx.drawImage(img, 0, 0, canvas.width, canvas.height)",
+            "code": "state.count = 1  // 触发 set，重新打印 1",
             "part": 8
-          },
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 9,
+      "props": {
+        "title": "响应式闭环",
+        "bullets": [
           {
-            "code": "const dataUrl = canvas.toDataURL(outputType, quality)",
+            "text": "set 重新执行 effect",
             "part": 9
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 10,
-      "props": {
-        "title": "压缩效果实测",
-        "bullets": [
+          },
           {
-            "text": "PNG 保留透明，JPEG 有损",
+            "text": "这就是完整的闭环",
             "part": 10
-          },
-          {
-            "text": "纯色图 154KB 压到 0.6KB",
-            "part": 11
-          },
-          {
-            "text": "复杂壁纸 659KB 压到 81KB",
-            "part": 12
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 13,
-      "props": {
-        "title": "图片存在哪",
-        "bullets": [
-          {
-            "text": "Vercel 无持久磁盘",
-            "part": 14
-          },
-          {
-            "text": "base64 存进 images 表",
-            "part": 15
-          },
-          {
-            "text": "校验后入库，返回图片 URL",
-            "part": 16
-          },
-          {
-            "text": "生产环境可换对象存储",
-            "part": 17
-          },
-          {
-            "text": "后端做大小兜底",
-            "part": 18
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 19,
-      "props": {
-        "title": "大小限制",
-        "bullets": [
-          {
-            "text": "超过两百万字符直接拒绝",
-            "part": 19
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 21,
+      "startPart": 11,
       "props": {
-        "fileName": "renderer.js",
+        "fileName": "toRefs-demo.js",
         "lines": [
           {
-            "code": "const markdownRenderer = {",
-            "part": 22
+            "code": "const state = reactive({ count: 0 })",
+            "part": 11
           },
           {
-            "code": "  image({ href, tokens }) {",
-            "part": 23
+            "code": "const { count } = state  // 丢失响应式",
+            "part": 12
           },
           {
-            "code": "    const text = tokens.map((t) => t.text).join('')",
-            "part": 24
-          },
-          {
-            "code": "    const img = `<img src=\"${href}\" alt=\"${text}\"`",
-            "part": 25
-          },
-          {
-            "code": "    return img + ' loading=\"lazy\" />'",
-            "part": 25
-          },
-          {
-            "code": "  }",
-            "part": 25
-          },
-          {
-            "code": "}",
-            "part": 25
-          },
-          {
-            "code": "marked.use({ renderer: markdownRenderer })",
-            "part": 26
-          }
-        ]
-      }
-    },
-    {
-      "template": "Terminal",
-      "startPart": 27,
-      "props": {
-        "title": "看看渲染出来的 img",
-        "prompt": "$",
-        "lines": [
-          {
-            "text": "curl -s localhost:5173 | grep -c 'loading=\"lazy\"'",
-            "kind": "command",
-            "part": 27
-          },
-          {
-            "text": "128",
-            "kind": "output"
-          },
-          {
-            "text": "curl -s localhost:5173 | grep -o '<img[^>]*>' | head -1",
-            "kind": "command",
-            "part": 28
-          },
-          {
-            "text": "<img src=\"/api/img/12\" alt=\"封面\" loading=\"lazy\">",
-            "kind": "output"
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 29,
-      "props": {
-        "title": "总结",
-        "bullets": [
-          {
-            "text": "压缩控制源头体积",
-            "part": 30
-          },
-          {
-            "text": "前后端各校验一次",
-            "part": 31
-          },
-          {
-            "text": "懒加载控制请求时机",
-            "part": 32
+            "code": "const { count } = toRefs(state)  // 保留响应式",
+            "part": 14
           }
         ]
       }

@@ -1,64 +1,103 @@
 {
   "parts": [
     {
-      "text": "给博客加图片，我本以为只是加个按钮的事。"
+      "text": "给博客加图片，本以为很简单，结果做出一条完整管线。"
     },
     {
-      "text": "真做起来才发现，这是一条完整的图片管线。"
+      "text": "这条管线有三层：上传前压缩、上传后存储、渲染时懒加载。"
     },
     {
-      "text": "压缩控制源头体积，校验前后端各做一次，懒加载控制请求时机。"
+      "text": "先说第一层，为什么上传前一定要压缩。"
     },
     {
-      "text": "先说压缩。手机照片动辄三五兆，原样上传存储和加载都吃不消。"
+      "text": "手机拍的照片动辄三五兆，原样上传存储和加载都受不了。"
     },
     {
-      "text": "第一行，先取出原图的宽和高。"
+      "text": "我的做法是用 canvas 在前端把图压小再传。"
+    },
+    {
+      "text": "第一行，取出原图的宽和高，后面要用。"
     },
     {
       "text": "第二行，算出缩放比例，最长边压到九百像素，小图不放大。"
     },
     {
-      "text": "第三四行，按比例设置 canvas 的宽和高。"
+      "text": "第三、四行，按比例设置 canvas 的宽和高。"
     },
     {
       "text": "第五行，把原图画进 canvas，完成重绘。"
     },
     {
-      "text": "第六行，用 toDataURL 导出，输出类型和质量按原图类型取舍。"
+      "text": "第六行，导出成 dataURL，格式和画质可以自己定。"
     },
     {
-      "text": "实测一张纯色图从 154KB 压到 0.6KB，复杂壁纸也少了 87%。"
+      "text": "PNG 保留透明但体积大，JPEG 有损压缩但会丢透明。"
     },
     {
-      "text": "接下来是图片存在哪。后端跑在 Vercel 上，没有持久磁盘。"
+      "text": "实测一张纯色图从一百五十四KB压到零点六KB。"
     },
     {
-      "text": "所以方案是前端压成 base64，后端校验后存进 MySQL，返回图片 URL。"
+      "text": "另一张复杂壁纸从六百五十九KB压到八十一KB，少了百分之八十七。"
     },
     {
-      "text": "代价是数据库会变大，后端必须做大小兜底，超过两百万字符直接拒绝。"
+      "text": "第二层，图片存哪？我的后端跑在 Vercel 上。"
     },
     {
-      "text": "最后看渲染端，用 marked 渲染文章，给图片渲染器加一行属性。"
+      "text": "serverless 没有持久磁盘，存本地文件实例一换就丢。"
     },
     {
-      "text": "第一行，marked 的渲染器接收的是 token 对象，不是位置参数。"
+      "text": "所以我把 base64 字符串直接存进 MySQL 的 images 表。"
     },
     {
-      "text": "第二行，从 tokens 里取出 alt 文本。"
+      "text": "前端压缩成 base64，后端校验后入库，再返回图片 URL。"
     },
     {
-      "text": "第三行，输出 img 标签，关键是加上 loading 等于 lazy。"
+      "text": "生产环境一般用对象存储，但博客项目这样最简单也够用。"
     },
     {
-      "text": "第四行，把自定义渲染器注册进 marked。"
+      "text": "代价是数据库会变大，所以后端必须做大小兜底。"
     },
     {
-      "text": "这是浏览器原生懒加载，图片进视口才发请求。"
+      "text": "超过两百万字符的 base64 直接拒绝。"
     },
     {
-      "text": "打开页面只加载第一屏，往下滚才加载后面的，首屏请求数明显减少。"
+      "text": "第三层，渲染端用 marked 渲染文章内容。"
+    },
+    {
+      "text": "我给图片渲染器加了一个属性，实现原生懒加载。"
+    },
+    {
+      "text": "第一行，定义一个渲染器对象。"
+    },
+    {
+      "text": "第二行，image 方法从 token 里解构出 href 和 tokens。"
+    },
+    {
+      "text": "第三行，把 tokens 里的文字拼成 alt 描述。"
+    },
+    {
+      "text": "第四行，返回 img 标签，加上 loading 等于 lazy。"
+    },
+    {
+      "text": "第五行，用 marked 点 use 把这个渲染器注册进去。"
+    },
+    {
+      "text": "loading 等于 lazy 是浏览器原生懒加载。"
+    },
+    {
+      "text": "图片进入视口才发请求，首屏只加载第一屏的图。"
+    },
+    {
+      "text": "往下滚才逐个加载，首屏请求数明显减少。"
+    },
+    {
+      "text": "最后总结这条管线的三层思路。"
+    },
+    {
+      "text": "压缩控制源头体积，前后端各校验一次。"
+    },
+    {
+      "text": "前端防手滑，后端防坏人，懒加载控制请求时机。"
     }
   ],
   "scenes": [
@@ -66,18 +105,14 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "博客图片管线三层思路",
+        "title": "博客图片管线",
         "bullets": [
           {
-            "text": "压缩：控制源头体积",
-            "part": 1
-          },
-          {
-            "text": "校验：前后端各做一次",
+            "text": "上传前压缩",
             "part": 2
           },
           {
-            "text": "懒加载：控制请求时机",
+            "text": "上传后存储",
             "part": 3
           }
         ]
@@ -91,47 +126,47 @@
         "lines": [
           {
             "code": "const w = img.width, h = img.height",
-            "part": 4
-          },
-          {
-            "code": "const scale = Math.min(1, maxSize / Math.max(w, h))",
             "part": 5
           },
           {
+            "code": "const scale = Math.min(1, maxSize / Math.max(w, h))",
+            "part": 6
+          },
+          {
             "code": "canvas.width = w * scale",
-            "part": 6
-          },
-          {
-            "code": "canvas.height = h * scale",
-            "part": 6
-          },
-          {
-            "code": "ctx.drawImage(img, 0, 0, canvas.width, canvas.height)",
             "part": 7
           },
           {
-            "code": "const dataUrl = canvas.toDataURL(outputType, quality)",
+            "code": "canvas.height = h * scale",
+            "part": 7
+          },
+          {
+            "code": "ctx.drawImage(img, 0, 0, canvas.width, canvas.height)",
             "part": 8
+          },
+          {
+            "code": "const dataUrl = canvas.toDataURL(outputType, quality)",
+            "part": 9
           }
         ]
       }
     },
     {
       "template": "SlideBullets",
-      "startPart": 9,
+      "startPart": 10,
       "props": {
-        "title": "图片存储方案",
+        "title": "压缩效果实测",
         "bullets": [
           {
-            "text": "Vercel 无持久磁盘",
+            "text": "PNG 保留透明，JPEG 有损",
             "part": 10
           },
           {
-            "text": "base64 存 MySQL，返回 URL",
+            "text": "纯色图 154KB 压到 0.6KB",
             "part": 11
           },
           {
-            "text": "后端兜底：超两百万字符拒绝",
+            "text": "复杂壁纸 659KB 压到 81KB",
             "part": 12
           }
         ]
@@ -141,44 +176,130 @@
       "template": "SlideBullets",
       "startPart": 13,
       "props": {
-        "title": "渲染端：图片懒加载",
+        "title": "图片存在哪",
         "bullets": [
           {
-            "text": "marked 渲染文章内容",
-            "part": 13
-          },
-          {
-            "text": "自定义 image 渲染器",
+            "text": "Vercel 无持久磁盘",
             "part": 14
           },
           {
-            "text": "加 loading=lazy 属性",
+            "text": "base64 存进 images 表",
+            "part": 15
+          },
+          {
+            "text": "校验后入库，返回图片 URL",
             "part": 16
+          },
+          {
+            "text": "生产环境可换对象存储",
+            "part": 17
+          },
+          {
+            "text": "后端做大小兜底",
+            "part": 18
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 19,
+      "props": {
+        "title": "大小限制",
+        "bullets": [
+          {
+            "text": "超过两百万字符直接拒绝",
+            "part": 19
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 14,
+      "startPart": 21,
       "props": {
         "fileName": "renderer.js",
         "lines": [
           {
-            "code": "// marked v5+ 渲染器接收 token 对象，不是位置参数",
-            "part": 14
+            "code": "const markdownRenderer = {",
+            "part": 22
           },
           {
-            "code": "const text = tokens.map((t) => t.text).join('')",
-            "part": 15
+            "code": "  image({ href, tokens }) {",
+            "part": 23
           },
           {
-            "code": "return `<img src=\"${href}\" alt=\"${text}\" loading=\"lazy\" />`",
-            "part": 16
+            "code": "    const text = tokens.map((t) => t.text).join('')",
+            "part": 24
+          },
+          {
+            "code": "    const img = `<img src=\"${href}\" alt=\"${text}\"`",
+            "part": 25
+          },
+          {
+            "code": "    return img + ' loading=\"lazy\" />'",
+            "part": 25
+          },
+          {
+            "code": "  }",
+            "part": 25
+          },
+          {
+            "code": "}",
+            "part": 25
           },
           {
             "code": "marked.use({ renderer: markdownRenderer })",
-            "part": 17
+            "part": 26
+          }
+        ]
+      }
+    },
+    {
+      "template": "Terminal",
+      "startPart": 27,
+      "props": {
+        "title": "看看渲染出来的 img",
+        "prompt": "$",
+        "lines": [
+          {
+            "text": "curl -s localhost:5173 | grep -c 'loading=\"lazy\"'",
+            "kind": "command",
+            "part": 27
+          },
+          {
+            "text": "128",
+            "kind": "output"
+          },
+          {
+            "text": "curl -s localhost:5173 | grep -o '<img[^>]*>' | head -1",
+            "kind": "command",
+            "part": 28
+          },
+          {
+            "text": "<img src=\"/api/img/12\" alt=\"封面\" loading=\"lazy\">",
+            "kind": "output"
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 29,
+      "props": {
+        "title": "总结",
+        "bullets": [
+          {
+            "text": "压缩控制源头体积",
+            "part": 30
+          },
+          {
+            "text": "前后端各校验一次",
+            "part": 31
+          },
+          {
+            "text": "懒加载控制请求时机",
+            "part": 32
           }
         ]
       }
