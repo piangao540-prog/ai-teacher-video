@@ -12,6 +12,7 @@
     "shot:cue": "tsx src/render/shot.ts --cue",
     "frames": "tsx src/render/frames.ts",
     "encode": "tsx src/compose/encode.ts",
+    "status": "tsx src/render/status.ts",
     "video": "tsx src/plan/build-storyboard.ts && tsx src/render/frames.ts && tsx src/compose/encode.ts",
     "say": "tsx src/tts/speak.ts",
     "storyboard": "tsx src/plan/build-storyboard.ts"
