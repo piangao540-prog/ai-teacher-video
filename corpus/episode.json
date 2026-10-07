@@ -1,103 +1,88 @@
 {
   "parts": [
     {
-      "text": "今天我们来聊一聊 Promise，它是异步编程里最核心的一个工具，也是面试里绕不开的话题。"
+      "text": "canvas 是浏览器里的一块画布，今天讲三件事，让你能立刻上手。"
     },
     {
-      "text": "第一，它到底解决了什么让人头疼的问题。"
+      "text": "第一，怎么拿到这块画布上的绘图上下文。"
     },
     {
-      "text": "第二，它的三种状态是怎么流转的。"
+      "text": "第二，canvas 的坐标系长什么样，怎么画一个矩形。"
     },
     {
-      "text": "第三，then 和 catch 应该怎么配合使用。"
+      "text": "第三，新手最容易踩的坑，画布被拉伸变形。"
     },
     {
-      "text": "最后，说说新手最容易踩进去的那个坑。"
+      "text": "先看最小的一段代码，怎么在页面上画出一个矩形。"
     },
     {
-      "text": "先看它要解决的问题，这决定了它为什么会出现。"
+      "text": "第一行，先拿到页面上这个 canvas 元素，它就是一个普通的标签，只是默认没有内容。"
     },
     {
-      "text": "早期用回调处理异步，一层套一层，代码很快就变成金字塔形状。"
+      "text": "第二行，调用 getContext 拿到绘图上下文，参数传 2d，这是后面所有绘图的入口。"
     },
     {
-      "text": "每一层回调都要单独写错误处理，漏掉一个就埋下隐患。"
+      "text": "第三行，设置填充颜色，这里用一个蓝色，接下来画的图形都会用它。"
     },
     {
-      "text": "多个异步操作之间的先后依赖，用回调很难清晰地表达出来。"
+      "text": "第四行，调用 fillRect 画矩形，四个参数依次是 x、y、宽、高，单位都是像素。"
     },
     {
-      "text": "Promise 把异步操作包装成一个对象，用链式调用把顺序写清楚。"
+      "text": "第五行，换成 strokeRect 就只画边框，不填充，两个方法经常配合起来用。"
     },
     {
-      "text": "理解了它解决的问题，再看它的三种状态。"
+      "text": "那这四个参数里的 x 和 y，到底是从哪儿开始算的？"
     },
     {
-      "text": "一开始是 pending，表示还在等待结果。"
+      "text": "第一行，从 0 和 0 开始画，矩形贴在左上角，这就是坐标原点。"
     },
     {
-      "text": "调用 resolve 之后变成 fulfilled，表示成功。"
+      "text": "第二行，x 变大就往右走，所以这个矩形靠右上，y 还是 0。"
     },
     {
-      "text": "调用 reject 之后变成 rejected，表示失败。"
+      "text": "第三行，y 变大就往下走，这个矩形在左下角，x 还是 0。"
     },
     {
-      "text": "状态一旦改变就固定下来，不可能再变回 pending。"
+      "text": "第四行，两个都变大，就跑到右下角去了，这就是完整的坐标系。"
     },
     {
-      "text": "看一个最小的例子，先理解它是怎么被创建出来的。"
+      "text": "讲完画图，再说一个几乎人人都会踩的坑。"
     },
     {
-      "text": "第一行，一秒之后调用 resolve，把成功的结果传出去。"
+      "text": "第一，画布的宽高要写在 canvas 标签的属性上。"
     },
     {
-      "text": "第二行，用 then 注册回调，接收成功的结果并打印出来。"
+      "text": "第二，用 CSS 设置宽高，画面会被拉伸变形。"
     },
     {
-      "text": "第三行，这行会先执行，说明 then 的回调是异步的。"
+      "text": "第三，重新设置宽高属性，画布会被整个清空。"
     },
     {
-      "text": "再看错误处理和链式调用，这是它真正好用的地方。"
+      "text": "我们用一个例子看看这个坑到底长什么样。"
     },
     {
-      "text": "第一行，第一个 then 把响应体转成 JSON 对象。"
+      "text": "第一行，先给 canvas 写一条样式规则，注意这不是标签属性。"
     },
     {
-      "text": "第二行，第二个 then 拿到数据，打印出用户名。"
+      "text": "第二行，CSS 里把宽度写成 400 像素，比属性上的 200 大了一倍。"
     },
     {
-      "text": "第三行，catch 统一捕获前面任何一步抛出的错误。"
+      "text": "第三行，高度也写成 400 像素，于是整块画布被放大了。"
     },
     {
-      "text": "第四行，finally 不管成功失败都会执行，适合做收尾清理。"
+      "text": "第四行，这样写，里面的图形会被整体拉大，边缘就糊了。"
     },
     {
-      "text": "把它跑起来，看看实际的输出顺序。"
+      "text": "最后把页面跑起来，看看画出来的效果。"
     },
     {
-      "text": "先跑第一个例子。"
+      "text": "用 vite 起一个开发服务器，它会自动打开浏览器。"
     },
     {
-      "text": "再跑链式调用的例子。"
+      "text": "打开这个页面，就能看到刚才画的那个蓝色矩形。"
     },
     {
-      "text": "注意它每一步的输出顺序。"
-    },
-    {
-      "text": "最后说一个最容易搞错的地方，理解了它才算真的会用。"
-    },
-    {
-      "text": "构造函数里的代码是同步执行的，只有 then 的回调才是异步的。"
-    },
-    {
-      "text": "then 里面忘了 return，下一个 then 就拿不到上一个的结果。"
-    },
-    {
-      "text": "catch 处理完错误，后面仍然可以接着写 then 继续往下走。"
-    },
-    {
-      "text": "状态只能从 pending 变成成功或失败，之后不会再变。"
+      "text": "现在把刚才那段 CSS 宽高删掉，再刷新一次。"
     }
   ],
   "scenes": [
@@ -105,99 +90,96 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "Promise 入门",
+        "title": "canvas 基础使用",
         "bullets": [
           {
-            "text": "它解决什么问题",
+            "text": "先拿到绘图上下文",
             "part": 1
           },
           {
-            "text": "三种状态怎么流转",
+            "text": "坐标系和绘制矩形",
             "part": 2
           },
           {
-            "text": "then 和 catch 怎么用",
+            "text": "别让画布被拉伸变形",
             "part": 3
-          },
-          {
-            "text": "最容易踩的坑",
-            "part": 4
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 5,
-      "props": {
-        "title": "为什么需要 Promise",
-        "bullets": [
-          {
-            "text": "回调嵌套太深",
-            "part": 6
-          },
-          {
-            "text": "错误不好统一处理",
-            "part": 7
-          },
-          {
-            "text": "无法表达先后顺序",
-            "part": 8
-          },
-          {
-            "text": "Promise 把异步变成链式调用",
-            "part": 9
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 10,
-      "props": {
-        "title": "三种状态",
-        "bullets": [
-          {
-            "text": "pending 等待中",
-            "part": 11
-          },
-          {
-            "text": "fulfilled 已成功",
-            "part": 12
-          },
-          {
-            "text": "rejected 已失败",
-            "part": 13
-          },
-          {
-            "text": "状态不可逆",
-            "part": 14
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 15,
+      "startPart": 4,
       "props": {
-        "fileName": "promise-demo.js",
+        "fileName": "demo.html",
         "lines": [
           {
-            "code": "const p = new Promise((resolve, reject) => {"
+            "code": "<canvas id=\"board\" width=\"200\" height=\"200\"></canvas>"
           },
           {
-            "code": "  setTimeout(() => resolve('数据到了'), 1000)",
+            "code": "const canvas = document.querySelector('#board')",
+            "part": 5
+          },
+          {
+            "code": "const ctx = canvas.getContext('2d')",
+            "part": 6
+          },
+          {
+            "code": "ctx.fillStyle = '#3b82f6'",
+            "part": 7
+          },
+          {
+            "code": "ctx.fillRect(20, 20, 100, 60)",
+            "part": 8
+          },
+          {
+            "code": "ctx.strokeRect(20, 20, 100, 60)",
+            "part": 9
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 10,
+      "props": {
+        "fileName": "coordinate.js",
+        "lines": [
+          {
+            "code": "ctx.fillRect(0, 0, 50, 50)",
+            "part": 11
+          },
+          {
+            "code": "ctx.fillRect(150, 0, 50, 50)",
+            "part": 12
+          },
+          {
+            "code": "ctx.fillRect(0, 150, 50, 50)",
+            "part": 13
+          },
+          {
+            "code": "ctx.fillRect(150, 150, 50, 50)",
+            "part": 14
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 15,
+      "props": {
+        "title": "新手最容易搞错的地方",
+        "bullets": [
+          {
+            "text": "宽高要写在 canvas 属性上",
             "part": 16
           },
           {
-            "code": "})"
-          },
-          {
-            "code": "p.then(res => console.log(res))",
+            "text": "用 CSS 写宽高会拉伸",
             "part": 17
           },
           {
-            "code": "console.log('这行会先执行')",
+            "text": "改宽高会清空画布",
             "part": 18
           }
         ]
@@ -207,25 +189,22 @@
       "template": "CodeTyping",
       "startPart": 19,
       "props": {
-        "fileName": "chain-demo.js",
+        "fileName": "stretch.css",
         "lines": [
           {
-            "code": "fetch('/api/user')"
-          },
-          {
-            "code": "  .then(res => res.json())",
+            "code": "canvas {",
             "part": 20
           },
           {
-            "code": "  .then(data => console.log(data.name))",
+            "code": "  width: 400px;",
             "part": 21
           },
           {
-            "code": "  .catch(err => console.error(err))",
+            "code": "  height: 400px;",
             "part": 22
           },
           {
-            "code": "  .finally(() => console.log('请求结束'))",
+            "code": "}",
             "part": 23
           }
         ]
@@ -235,59 +214,35 @@
       "template": "Terminal",
       "startPart": 24,
       "props": {
-        "title": "运行结果",
+        "title": "运行页面",
         "prompt": "$",
         "lines": [
           {
-            "text": "node promise-demo.js",
+            "text": "npx vite",
             "kind": "command",
             "part": 25
           },
           {
-            "text": "这行会先执行",
+            "text": "  ➜  Local:   http://localhost:5173/",
             "kind": "output"
           },
           {
-            "text": "数据到了",
-            "kind": "output"
-          },
-          {
-            "text": "node chain-demo.js",
+            "text": "open http://localhost:5173/demo.html",
             "kind": "command",
             "part": 26
           },
           {
-            "text": "Alice",
+            "text": "画布上出现一个蓝色矩形",
             "kind": "output"
           },
           {
-            "text": "请求结束",
+            "text": "把 CSS 宽高删掉再刷新",
+            "kind": "command",
+            "part": 27
+          },
+          {
+            "text": "矩形恢复清晰，不再变形",
             "kind": "output"
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 28,
-      "props": {
-        "title": "常见误区",
-        "bullets": [
-          {
-            "text": "Promise 本身不是异步的",
-            "part": 29
-          },
-          {
-            "text": "忘了 return 会断链",
-            "part": 30
-          },
-          {
-            "text": "catch 之后还能继续 then",
-            "part": 31
-          },
-          {
-            "text": "状态一旦改变就不可逆",
-            "part": 32
           }
         ]
       }

@@ -1,2 +1,2 @@
 <!-- topic -->
-promise
+canvas的基础使用
