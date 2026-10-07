@@ -1,6 +1,6 @@
 import { createServer } from 'node:http'
-import { readFile } from 'node:fs/promises'
 import path from 'node:path'
+import { sendFile } from '../server/send-file'
 
 // 注意：不能用 file:// 打开构建产物。
 // file:// 下浏览器会以跨域为由拦掉 <script type="module">，页面根本不会启动。
@@ -45,14 +45,7 @@ export async function startStageServer(): Promise<{ url: string; close: () => vo
         res.end()
         return
       }
-      try {
-        const body = await readFile(generated)
-        res.writeHead(200, { 'content-type': mimeOf(generated) })
-        res.end(body)
-      } catch {
-        res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' })
-        res.end('还没生成：' + generated + '（先跑 pnpm say / pnpm storyboard）')
-      }
+      await sendFile(req, res, generated, mimeOf(generated))
       return
     }
 
@@ -65,14 +58,7 @@ export async function startStageServer(): Promise<{ url: string; close: () => vo
       return
     }
 
-    try {
-      const body = await readFile(file)
-      res.writeHead(200, { 'content-type': mimeOf(file) })
-      res.end(body)
-    } catch {
-      res.writeHead(404, { 'content-type': 'text/plain' })
-      res.end('not found')
-    }
+    await sendFile(req, res, file, mimeOf(file))
   })
 
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))

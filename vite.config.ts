@@ -1,8 +1,8 @@
-import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { planApi } from './src/server/plan-api'
+import { sendFile } from './src/server/send-file'
 
 const MIME: Record<string, string> = {
   '.json': 'application/json; charset=utf-8',
@@ -13,6 +13,10 @@ const MIME: Record<string, string> = {
 // 开发服务器默认不认识 /storyboard.json 和 /audio/* ——
 // 它们不在 public 里，是每次渲染才生成的。
 // 这里挂个中间件，让 pnpm dev 也能预览，而且能听到声音。
+//
+// ★ 走 sendFile 而不是自己 readFile 整个发出去：音频**必须**支持 HTTP Range。
+//   不支持的话 <audio> 的 seekable 范围是 0，`currentTime = X` 会被静默忽略 ——
+//   拖进度条不跳、暂停再播从头开始。详见 src/server/send-file.ts。
 function stageDataPlugin(): Plugin {
   return {
     name: 'stage-data',
@@ -24,21 +28,20 @@ function stageDataPlugin(): Plugin {
         if (url === '/storyboard.json') {
           target = path.resolve('out/render/storyboard.json')
         } else if (url.startsWith('/audio/')) {
-          target = path.resolve('out/render/audio', decodeURIComponent(url.slice('/audio/'.length)))
+          const root = path.resolve('out/render/audio')
+          const file = path.resolve(root, decodeURIComponent(url.slice('/audio/'.length)))
+          // 别让 ../../ 跑到音频目录外面去
+          if (!file.startsWith(root)) {
+            res.statusCode = 403
+            return res.end()
+          }
+          target = file
         }
 
         if (!target) return next()
 
-        const file = target
-        readFile(file)
-          .then((data) => {
-            res.setHeader('content-type', MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream')
-            res.end(data)
-          })
-          .catch(() => {
-            res.statusCode = 404
-            res.end('还没生成：' + file)
-          })
+        const file: string = target
+        void sendFile(req, res, file, MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream')
       })
     },
   }

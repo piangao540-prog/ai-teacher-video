@@ -208,17 +208,49 @@ function isStaticAt(cur: number, prev: number): boolean {
 // ★ 预览时以「音频」为时钟：t 跟着 audio.currentTime 走。
 //   这样你听到的和看到的是同一条时间线，能直接判断对不对得上。
 //   这不违反「场景只依赖 t」—— 场景依然只认 t，只是 t 的来源从 performance.now 换成了音频。
+
+// 按钮上显示 ⏸ 还是 ▶，就看这一个。它是 UI 状态，不进画面 ——
+// 出片时整条工具栏都不在 DOM 里（v-if="!isRender"）。
+const playing = ref(false)
+
+/**
+ * 进度条的步长（毫秒）。
+ *
+ * ★ 它不只是一个 step，还定义了「多接近片尾才算已经播完」——
+ *   因为 step 会把值**吸附到整数倍**上，拖到最右端落在的是
+ *   `floor(duration/16)*16`，比 duration 小：153020 → 153008。
+ *   拿 `t >= duration` 判「播完了」，拖到片尾再按播放就只会播十几毫秒，
+ *   看着像按钮坏了。留一个 step 的余量刚好盖住这个吸附差。
+ */
+const SCRUB_STEP_MS = 16
+
 function play() {
-  stop()
-  const from = t.value >= duration.value ? 0 : t.value
+  // ★ 只停上一轮的时钟，**不**去 pause 音频。
+  //   原来这里调的是 pause()，等于「停音频、seek、再播」三次状态切换，
+  //   而这三步之间浏览器不一定来得及把 seek 应用上去。
+  //   我们要的只是「别再往下跑了」，stopTicking 就够。
+  stopTicking()
+  const from = t.value >= duration.value - SCRUB_STEP_MS ? 0 : t.value
+  playing.value = true
   const audio = audioEl.value
 
   if (audio) {
     audio.currentTime = from / 1000
-    void audio.play()
+    // 播不起来（自动播放被拦、音频 404）就把按钮弹回 ▶。
+    // 不 catch 的话按钮会一直显示 ⏸ 而画面纹丝不动 —— 按钮在撒谎。
+    void audio.play().catch(() => {
+      playing.value = false
+    })
     const tick = () => {
       t.value = Math.min(audio.currentTime * 1000, duration.value)
-      if (!audio.paused && t.value < duration.value) raf = requestAnimationFrame(tick)
+      // 用自己这份 playing 判「还该不该往下走」，不用 audio.paused：
+      // play() 是异步的，刚调完那一瞬 audio.paused 还是 true，
+      // 拿它当判据会让按钮在播起来的第一帧就弹回去。
+      if (t.value >= duration.value || !playing.value) {
+        playing.value = false
+        return
+      }
+      raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return
@@ -228,29 +260,82 @@ function play() {
   const startedAt = performance.now()
   const tick = (now: number) => {
     t.value = Math.min(from + (now - startedAt), duration.value)
-    if (t.value < duration.value) raf = requestAnimationFrame(tick)
+    if (t.value < duration.value && playing.value) {
+      raf = requestAnimationFrame(tick)
+    } else {
+      playing.value = false
+    }
   }
   raf = requestAnimationFrame(tick)
 }
 
-function stop() {
+/**
+ * 暂停 —— 不是「停止」：t 不归零，从哪儿停的从哪儿接着播。
+ *
+ * 原来它叫 `stop`，而那个名字正是「播放」「暂停」做成两个按钮的起因：
+ * 听起来像一个独立动作，于是 UI 上也给了它一个独立位置。
+ * 它和 play 是一对，名字就该配成一对。
+ */
+function stopTicking() {
   if (raf) cancelAnimationFrame(raf)
   raf = 0
-  audioEl.value?.pause()
 }
 
-// 拖时间条：画面和声音一起跳过去
+function pause() {
+  stopTicking()
+  audioEl.value?.pause()
+  playing.value = false
+}
+
+function toggle() {
+  if (playing.value) pause()
+  else play()
+}
+
+// 拖时间条：画面和声音一起跳过去。
+//
+// ★ 「本来在播吗」只在**第一次** input 时记。拖一次会连发几十个 input，
+//   而它们每一个都会走到下面的 pause() —— 第二次之后 playing 已经是 false，
+//   再记就只会记成「本来没在播」，松手也就不接着播了。
+let scrubbing = false
+let resumeAfterScrub = false
+
 function onScrub(e: Event) {
   const value = Number((e.target as HTMLInputElement).value)
-  stop()
+  if (!scrubbing) {
+    scrubbing = true
+    resumeAfterScrub = playing.value
+  }
+  pause()
   t.value = value
   if (audioEl.value) audioEl.value.currentTime = value / 1000
 }
 
-onUnmounted(stop)
+/** 松手（或键盘松开方向键）。
+ *  拖动本身不该是个「暂停」操作 —— 本来在播就接着播。 */
+function onScrubEnd() {
+  scrubbing = false
+  if (!resumeAfterScrub) return
+  resumeAfterScrub = false
+  play()
+}
+
+/**
+ * 毫秒 → `分:秒.毫秒`。
+ *
+ * 原来印的是 `1962 ms`。做片子的时候脑子里是「第 1.96 秒」，
+ * 不是「第 1962 毫秒」。而且定长 9 个字符，拖进度条时数字不会左右抖。
+ */
+function timecode(ms: number): string {
+  const v = Math.max(0, Math.round(ms))
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(Math.floor(v / 60000))}:${pad(Math.floor(v / 1000) % 60)}.${String(v % 1000).padStart(3, '0')}`
+}
+
+onUnmounted(pause)
 
 async function seek(ms: number) {
-  stop()
+  pause()
   await ready
   t.value = ms
   await nextTick()
@@ -277,16 +362,46 @@ async function seek(ms: number) {
       </div>
     </div>
 
-    <div class="bar" v-if="!isRender">
-      <button @click="play">播放</button>
-      <button @click="stop">暂停</button>
-      <label class="toggle"><input type="checkbox" v-model="showSubs" /> 字幕</label>
-      <select v-model="subtitleVariant" class="variant">
-        <option v-for="v in VARIANTS" :key="v" :value="v">{{ v }}</option>
-      </select>
-      <input type="range" min="0" :max="duration" step="16" :value="t" @input="onScrub" />
-      <span class="t">{{ Math.round(t) }} ms</span>
-      <span class="scene">{{ current?.id }} / {{ current?.template }}</span>
+    <div class="controls" v-if="!isRender">
+      <div class="bar">
+        <!-- 播放/暂停是**一个**开关，不是两个按钮：它们互斥
+             （播放时按暂停没意义，反之亦然），摆两个等于把
+             「现在到底在播吗」推给观众去判断。 -->
+        <button class="play" :title="playing ? '暂停' : '播放'" @click="toggle">
+          {{ playing ? '⏸' : '▶' }}
+        </button>
+
+        <input
+          class="scrub"
+          type="range"
+          min="0"
+          :max="duration"
+          :step="SCRUB_STEP_MS"
+          :value="t"
+          @input="onScrub"
+          @change="onScrubEnd"
+        />
+
+        <span class="t">{{ timecode(t) }}</span>
+        <span class="sep"></span>
+
+        <!-- 原生 checkbox 藏起来但**留着**：键盘 Tab、空格切换、
+             读屏全靠它。自己画一个 ≠ 把它删掉 —— 外观丢了能重画，语义丢了没法补。
+             外观靠 `input:checked + .box` 跟着选中状态走，Vue 里不存第二份状态。 -->
+        <label class="toggle">
+          <input type="checkbox" v-model="showSubs" />
+          <span class="box"></span>
+          字幕
+        </label>
+
+        <select v-model="subtitleVariant" class="variant">
+          <option v-for="v in VARIANTS" :key="v" :value="v">{{ v }}</option>
+        </select>
+      </div>
+
+      <!-- 调试信息挪出工具栏：它是给作者的，不是给观众的，
+           混在控件里会跟「字幕」那种真控件抢最右边那个位置 -->
+      <p class="scene">{{ current?.id }} · {{ current?.template }}</p>
     </div>
 
     <!-- 只在预览时挂 audio。渲染模式不挂：出片要的是纯画面，声音由 ffmpeg 混。 -->
@@ -324,38 +439,169 @@ async function seek(ms: number) {
   transform-origin: top left;
   background: #fff;
 }
+/* 工具栏 + 它下面那行调试信息。宽度和上面 960px 的画框对齐。 */
+.controls {
+  width: 960px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
 .bar {
+  box-sizing: border-box;
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  padding: 10px 16px;
+  background: #191919;
+  border: 1px solid #2c2c2c;
+  border-radius: 12px;
 }
+
+/* 圆形播放按钮：一个开关顶原来两个按钮 */
+.play {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-family: system-ui, 'Segoe UI Symbol', sans-serif;
+  font-size: 15px;
+  line-height: 1;
+  color: #dfe6e2;
+  background: #2c5c46;
+  border: 1px solid #3d7a5e;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.play:hover {
+  background: #356c53;
+}
+.play:active {
+  transform: scale(0.94);
+}
+
+/* 进度条 ── `appearance: none` 是这个文件里最要紧的一行。
+   原生 range 是**替换元素**：浏览器拿自己的渲染器画它，普通盒模型那套
+   基本管不着。不写这行，下面 ::-webkit-slider-thumb 那些规则一条都不生效。 */
+.scrub {
+  flex: 1;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #333;
+  outline: none;
+  cursor: pointer;
+}
+.scrub::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6cc59a;
+  border: none;
+}
+.scrub::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6cc59a;
+  border: none;
+}
+
+/* tabular-nums：数字等宽，拖进度条时 `00:01.962` 不会左右抖 */
+.t {
+  flex: 0 0 auto;
+  min-width: 74px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: #9aa4a0;
+  text-align: right;
+}
+
+/* 一根竖线把「放音」那半和「显示」那半分开 ——
+   分组靠间距和分隔，不靠平均的 gap */
+.sep {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 20px;
+  background: #303030;
+}
+
 .toggle {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  color: #bbb;
+  font-size: 13px;
+  color: #9aa4a0;
   cursor: pointer;
+  user-select: none;
 }
+/* 藏起来、但留在 DOM 里（位置绝对化 + 零尺寸），键盘和读屏照旧能用 */
+.toggle input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+.toggle .box {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  border: 1px solid #3f3f3f;
+  border-radius: 4px;
+  background: #121212;
+}
+/* `input:checked + .box` —— 相邻兄弟选择器。checkbox 和 .box 在 DOM 里挨着，
+   所以选中时 .box 自己就变样，不用在 Vue 里再存一份重复的状态。 */
+.toggle input:checked + .box {
+  background: #2c5c46;
+  border-color: #3d7a5e;
+}
+/* 对勾：一个小矩形只留右边和下边的边框，转 45° 就是了 */
+.toggle input:checked + .box::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #cfe9d8;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.toggle input:focus-visible + .box {
+  outline: 2px solid #3d7a5e;
+  outline-offset: 2px;
+}
+
 .variant {
-  background: #222;
-  color: #ddd;
-  border: 1px solid #444;
+  flex: 0 0 auto;
+  appearance: none;
+  padding: 4px 22px 4px 8px;
+  font-size: 12px;
+  color: #9aa4a0;
+  background: #121212;
+  border: 1px solid #333;
   border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 13px;
+  cursor: pointer;
+  /* appearance: none 把原生那支箭头也一起干掉了，得自己画：
+     两个 45° 渐变各露出一半，拼成一个小三角 */
+  background-image: linear-gradient(45deg, transparent 50%, #7a7a7a 50%),
+    linear-gradient(135deg, #7a7a7a 50%, transparent 50%);
+  background-position: calc(100% - 11px) center, calc(100% - 7px) center;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
 }
-.bar input {
-  width: 420px;
-}
-.t {
-  font-variant-numeric: tabular-nums;
-  width: 90px;
-  text-align: right;
-}
+
 .scene {
-  color: #888;
-  font-size: 13px;
+  margin: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #555;
 }
 
 /* ↓↓↓ 渲染模式：1:1 原尺寸，没 UI，没阴影 ↓↓↓ */
