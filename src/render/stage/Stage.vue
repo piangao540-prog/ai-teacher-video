@@ -61,6 +61,42 @@ onMounted(async () => {
   markReady?.()
 })
 
+// ---- 「这一版是不是当前剧本的」那一小块提示 ----
+//
+// ★ 判据在服务端（render/artifacts.ts），这里只负责显示。
+//   页面**不该**自己发明一套「新旧」的判断 —— 这个项目在「把旧的当成最新的」
+//   上栽过几次，两次都是因为各处各有一套判据。
+//
+// ★ 单独一个 onMounted（不并进上面那个）：它查不到就什么都不说，
+//   绝不能因为「状态没查到」把 storyboard 的加载也带崩。
+//
+// ★ 出片模式（?render=1）不查：那条路径上 .controls 根本不在 DOM 里
+//   （见下面模板上的 v-if="!isRender"），查了也是白查。
+type StaleEdge = { edge: string; label: string; verdict: 'ok' | 'mismatch' | 'unknown'; detail: string }
+const staleEdges = ref<StaleEdge[]>([])
+
+onMounted(async () => {
+  if (isRender) return
+  try {
+    const res = await fetch('/api/status')
+    if (!res.ok) return
+    staleEdges.value = ((await res.json()) as { edges?: StaleEdge[] }).edges ?? []
+  } catch {
+    // 查不到就闭嘴。把「查不到」显示成「有问题」比不显示更坏。
+  }
+})
+
+/** 标签上那句话。**「不知道是哪一版」和「是旧的」必须分开说** ——
+ *  加指纹之前生成的产物属于前者，说成后者是在冤枉它。 */
+const staleTag = computed(() => {
+  const e = staleEdges.value
+  if (!e.length) return ''
+  const where = e.map((x) => x.label).join('、')
+  return e.every((x) => x.verdict === 'unknown')
+    ? '⚠ ' + where + '：不知道是哪一版（自检之前生成的）'
+    : '⚠ ' + where + ' 没跟上剧本'
+})
+
 const duration = computed(() => storyboard.value?.durationMs ?? 0)
 
 // 字幕是独立的一层：它跟着配音走，不属于任何场景，所以跨场景连续。
@@ -402,6 +438,13 @@ async function seek(ms: number) {
       <!-- 调试信息挪出工具栏：它是给作者的，不是给观众的，
            混在控件里会跟「字幕」那种真控件抢最右边那个位置 -->
       <p class="scene">{{ current?.id }} · {{ current?.template }}</p>
+
+      <!-- 版本标签：**平时根本不出现**。只在配音/时间轴没跟上剧本时才冒出来
+           （判据在 render/artifacts.ts，前两条边）。鼠标停上去看每一条的详情。
+           它是给作者的，不是给观众的 —— 所以和上面那行一样，不进工具栏。 -->
+      <p v-if="staleTag" class="stale" :title="staleEdges.map((e) => e.detail).join('\n')">
+        {{ staleTag }}
+      </p>
     </div>
 
     <!-- 只在预览时挂 audio。渲染模式不挂：出片要的是纯画面，声音由 ffmpeg 混。 -->
@@ -605,6 +648,15 @@ async function seek(ms: number) {
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   color: #555;
+}
+
+/* 版本标签。琥珀色照 Plan.vue 那份（scoped 样式跨不了组件，颜色值只能照抄）。
+   `cursor: help` 是给那个 title 提示的一个暗示 —— 不然没人知道能停上去看。 */
+.stale {
+  margin: 0;
+  font-size: 12px;
+  color: #b8860b;
+  cursor: help;
 }
 
 /* ↓↓↓ 渲染模式：1:1 原尺寸，没 UI，没阴影 ↓↓↓ */

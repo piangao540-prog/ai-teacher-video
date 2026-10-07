@@ -16,14 +16,11 @@
 //   是另一个量级的决定，停下来重新谈。
 
 import { spawn } from 'node:child_process'
-import { stat } from 'node:fs/promises'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { generate, isConfigured, loadLlmConfig, MISSING_CONFIG_HELP, persistEpisode } from '../plan/generate'
 import { describeResult, formatEpisodeReview } from '../plan/review'
 import { describeSource, persistTopic, resolveSource } from '../plan/source'
-
-const EPISODE_FILE = 'corpus/episode.json'
-const STORYBOARD_FILE = 'out/render/storyboard.json'
+import { EDGE_LABEL, formatBroken, inspect, PAGE_EDGES, type EdgeResult } from '../render/artifacts'
 
 // 一次只允许跑一个。多按一次按钮不该变成两份账单（也不该有两份 TTS 在抢同一个输出目录）。
 let running = false
@@ -32,14 +29,6 @@ let running = false
 function send(res: ServerResponse, payload: unknown): void {
   if (res.writableEnded || res.destroyed) return
   res.write('data: ' + JSON.stringify(payload) + '\n\n')
-}
-
-async function mtimeOf(file: string): Promise<number> {
-  try {
-    return (await stat(file)).mtimeMs
-  } catch {
-    return 0
-  }
 }
 
 function readBody(req: IncomingMessage): Promise<string> {
@@ -129,10 +118,17 @@ async function runRenderPipeline(log: (line: string, level?: 'info' | 'warn') =>
   return null
 }
 
-/** 跑完 say + storyboard 之后，画面和声音就都是这一版剧本的了。
- *  这里**不缓存结论**，每次都去比文件时间 —— 这个项目在「把旧的当成最新的」上栽过不止一次。 */
-async function isStale(): Promise<boolean> {
-  return (await mtimeOf(STORYBOARD_FILE)) < (await mtimeOf(EPISODE_FILE))
+/** 跑完 say + storyboard 之后，画面和声音就都是这一版剧本的了 —— 但**画面不是**
+ *  （它要等 pnpm video）。这里把断掉的那几条边报给页面。
+ *
+ *  ★ 只取 PAGE_EDGES 那三条，**不含「画面 → 成片」**：A+ 本来就不跑 video，
+ *    把成片算进去会让标签**一直**亮着，纯噪音。
+ *  ★ 判据是**内容指纹**，不是 mtime（替掉了原来那个比 mtime 的 isStale）——
+ *    分得出「重跑了一遍但内容没变」和「真的换了一版」。见 render/artifacts.ts。
+ *  ★ **不缓存结论**：这个项目在「把旧的当成最新的」上栽过不止一次。 */
+async function pageBroken(): Promise<EdgeResult[]> {
+  const report = await inspect()
+  return report.edges.filter((e) => PAGE_EDGES.includes(e.edge) && e.verdict !== 'ok')
 }
 
 async function runPlan(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -191,7 +187,7 @@ async function runPlan(req: IncomingMessage, res: ServerResponse): Promise<void>
     attempt: outcome.attempt,
     summary: describeResult(outcome.episode, outcome.attempt),
     review: formatEpisodeReview(outcome.episode),
-    stale: await isStale(),
+    stale: formatBroken(await pageBroken()),
   })
 }
 
@@ -215,7 +211,7 @@ async function runRender(_req: IncomingMessage, res: ServerResponse): Promise<vo
     attempt: 0,
     summary: [],
     review: '',
-    stale: await isStale(),
+    stale: formatBroken(await pageBroken()),
   })
 }
 
@@ -240,11 +236,35 @@ async function handle(req: IncomingMessage, res: ServerResponse, plan: boolean):
   }
 }
 
+/** `GET /api/status` —— 只回**页面关心的那三条边**（PAGE_EDGES），
+ *  `stale` 是空的就代表「配音/时间轴/画面都跟得上剧本」。
+ *
+ *  这是给控制栏那个安静的小标签用的：A+ 跑完之后它不亮，只有 pipeline
+ *  半路挂了（比如配音抽风）才亮 —— 那时候它本来就该亮。
+ *
+ *  ★ 不套 `running` 那个 409：正在跑的时候恰恰是最该看得见状态的时候。 */
+async function runStatus(res: ServerResponse): Promise<void> {
+  res.setHeader('content-type', 'application/json; charset=utf-8')
+  res.setHeader('cache-control', 'no-store')
+  try {
+    // 回结构化的一条一条，不是拼好的整句 —— 两个消费者要的东西不一样：
+    // Plan.vue 直接印 `formatBroken` 的人话（走 SSE），Stage.vue 那个小标签
+    // 只要 label + verdict + 悬停用的 detail。
+    const broken = await pageBroken()
+    res.end(JSON.stringify({ edges: broken.map((e) => ({ ...e, label: EDGE_LABEL[e.edge] })) }))
+  } catch (e) {
+    // 体检本身不该崩（它读的都是 JSON），真崩了也别让页面以为「一切正常」
+    res.statusCode = 500
+    res.end(JSON.stringify({ error: String(e) }))
+  }
+}
+
 /**
- * connect 中间件：只接 `POST /api/plan` 和 `POST /api/render`，其余一律 `next()`。
+ * connect 中间件：只接 `POST /api/plan`、`POST /api/render`、`GET /api/status`，
+ * 其余一律 `next()`。
  *
  * 挂的位置是 vite.config.ts 的 configureServer —— 那里 use 的中间件跑在
- * Vite 内置中间件**之前**，所以这两个 POST 不会被它自己的静态服务拦掉；
+ * Vite 内置中间件**之前**，所以这几个端点不会被它自己的静态服务拦掉；
  * 而我们对别的 URL 都放行，不会影响页面和 HMR。
  */
 export function planApi() {
@@ -252,7 +272,20 @@ export function planApi() {
     const url = (req.url ?? '').split('?')[0]
     const plan = url === '/api/plan'
     const render = url === '/api/render'
-    if (!plan && !render) return next()
+    const status = url === '/api/status'
+    if (!plan && !render && !status) return next()
+
+    if (status) {
+      if (req.method !== 'GET') {
+        res.statusCode = 405
+        res.setHeader('allow', 'GET')
+        res.end()
+        return
+      }
+      // 不 await：中间件必须立刻返回（下面那个 handle 同理）
+      void runStatus(res)
+      return
+    }
 
     if (req.method !== 'POST') {
       res.statusCode = 405

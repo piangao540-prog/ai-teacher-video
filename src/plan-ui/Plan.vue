@@ -13,7 +13,7 @@ import { nextTick, ref, watch } from 'vue'
 
 type ServerMsg =
   | { type: 'log'; line: string; level?: 'info' | 'warn' }
-  | { type: 'done'; attempt: number; summary: string[]; review: string; stale: boolean }
+  | { type: 'done'; attempt: number; summary: string[]; review: string; stale: string[] }
   | { type: 'fail'; problems: string[] }
 
 type Done = Extract<ServerMsg, { type: 'done' }>
@@ -145,9 +145,12 @@ function reload(): void {
     <div v-if="done" class="box ok">
       <pre v-if="done.summary.length" class="summary">{{ done.summary.join('\n') }}</pre>
 
-      <p v-if="done.stale" class="stale">
-        ⚠ 剧本换了，<b>画面还是上一版</b> —— 下面播的仍是旧 storyboard.json 对应的画面。
-        想看到新剧本的画面：<code>pnpm say</code> → <code>pnpm storyboard</code> → 刷新页面。
+      <!-- stale 是**服务端算好的几行人话**（判据在 render/artifacts.ts），
+           不是这里的布尔值。分成「是旧的」和「不知道是哪一版」两种说法 ——
+           加指纹之前生成的产物属于后者，说成「旧的」是在冤枉它。 -->
+      <p v-if="done.stale.length" class="stale">
+        ⚠ 剧本换了，但<b>下面播的还不是这一版</b>。<br />
+        <span v-for="(line, i) in done.stale" :key="i" class="edge">{{ line }}</span>
       </p>
       <p v-else class="ready">
         ✓ 配音和时间轴都刷新了。<b>刷新页面</b>就能在下面听到、看到这一版。
@@ -283,6 +286,13 @@ function reload(): void {
   font-size: 13px;
   color: #999;
   line-height: 1.7;
+}
+.stale .edge {
+  display: block;
+  margin-top: 2px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  color: #c9ab63;
 }
 .stale b,
 .remind b,
