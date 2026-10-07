@@ -193,7 +193,7 @@ await writeFile(STORYBOARD_FILE, JSON.stringify(storyboard, null, 2) + '\n')
 // 写文件走 Node 的 writeFile（UTF-8 **不带 BOM**）。
 // 别改成用 PowerShell 的 `-Encoding utf8` 中转 —— 那会写进 BOM，
 // 有些播放器会把 BOM 当成正文的第一个字符，字幕开头多一个乱码方块。
-// （README「踩过的坑」里记着这个，ffmpeg 的 concat 列表就是这么坏的。）
+// （DESIGN「踩过的坑」里记着这个，ffmpeg 的 concat 列表就是这么坏的。）
 const srtPath = path.join(outRoot, 'subtitles.srt')
 const vttPath = path.join(outRoot, 'subtitles.vtt')
 await writeFile(srtPath, toSrt(cues))

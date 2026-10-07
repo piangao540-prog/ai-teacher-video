@@ -163,7 +163,7 @@ function repairHint(problems: string[]): string {
   // 这里原来有一条「第 N 行对不上」的提示。行号收归程序（addLineNumbers）之后，
   // **它在 pnpm plan 这条路上永远触发不了**：校验跑在补行号之前，那时讲稿里没有行号；
   // 模型自己写行号则会被 validateAuthored 直接拦住（见下面那条）。
-  // 留着一条永远不会被匹配上的提示，正是 README 里记过的「写了但没生效」的毛病。
+  // 留着一条永远不会被匹配上的提示，正是 DESIGN 里记过的「写了但没生效」的毛病。
   if (problems.some((p) => p.includes('行号由程序'))) {
     hints.push(
       '- 「行号由程序补」：不要说「第一行」「第二行」。你只消写这一行在做什么，' +

@@ -10,7 +10,7 @@ const outRoot = path.resolve('out/render')
 const framesDir = path.join(outRoot, 'frames')
 const storyboardPath = STORYBOARD_FILE
 
-// 关掉静态帧复用，用来和开启时逐帧对拍（见 README 里那次验证）
+// 关掉静态帧复用，用来和开启时逐帧对拍（见 DESIGN 里那次验证）
 const NO_REUSE = process.env.FRAMES_NO_REUSE === '1'
 
 // 时长只有一个来源：storyboard.json（它自己又是从配音量出来的）。
