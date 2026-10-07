@@ -437,7 +437,10 @@ async function seek(ms: number) {
   height: 1080px;
   transform: scale(0.5);
   transform-origin: top left;
-  background: #fff;
+  /* storyboard 还没到、或者场景组件还没挂上时露出来的就是这个色。
+     原来是白的 —— 页面刚打开那一下是一屏纯白，像坏了。
+     改成和所有场景同一个底：那一瞬看着像「从黑场淡入」，是设计的一部分。 */
+  background: #0d1117;
 }
 /* 工具栏 + 它下面那行调试信息。宽度和上面 960px 的画框对齐。 */
 .controls {
