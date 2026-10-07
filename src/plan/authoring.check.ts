@@ -13,10 +13,13 @@
 //   3. 推出来的东西必须满足不变量。**最要紧的一条**：每个写了 say 的元素，
 //      它的 part 必须正好指向**它自己那一句** —— 这就是整套设计的那句承诺。
 //   4. 行号（「第 N 行，」）只能是程序加的：模型写了要被拦，程序加的位置和顺序要对。
+//   5. 「这句话可能在讲别的行」那条启发式：该报的报、不该报的不报
+//      （它不是校验，见 narration-hint.ts）。
 
 import { readFile } from 'node:fs/promises'
 import { addLineNumbers, deriveEpisode, validateAuthored, type AuthoredEpisode } from './authoring'
 import { checkEditorial, cnOrdinal, validateEpisode, type Episode } from './episode'
+import { findMislaidNarration } from './narration-hint'
 
 const ok: string[] = []
 const bad: string[] = []
@@ -118,6 +121,81 @@ check(
 // 程序补的号必须自己就过得了那条序数检查 —— 否则「收走行号」等于把 bug 换了个位置。
 const numberedEditorial = checkEditorial(numbered).filter((p) => !p.includes('太短'))
 check(numberedEditorial.length === 0, '补完行号后过编辑校验（含「第 N 行」自洽）' + (numberedEditorial[0] ?? ''))
+
+// ---- 2.6 「这句话可能在讲别的行」的提示 ----
+//
+// 它不是校验（不拦、不重试），所以这里测的不是「能不能拦住」，而是
+// **报得准不准**：该报的要报，回指前面定义过的东西不能冤枉它。
+// 拿范例来改，比另造 fixture 更靠谱 —— 范例是模型真正在学的那个形状。
+const exLines = (exampleEpisode.scenes[1]!.props as { lines: Array<{ code: string; part?: number }> }).lines
+const partOf = (i: number) => exLines[i]!.part!
+
+check(findMislaidNarration(exampleEpisode).length === 0, '提示：范例本身一条都不报（不冤枉写对的）')
+
+// 把第 2 行的讲解换成只在这一块**后面**才出现的标识符（reactive 在第 4 行）
+const mislaid = structuredClone(exampleEpisode)
+mislaid.parts[partOf(1)]!.text = '先用 reactive 定义一个对象，里面放一个 n。'
+const mislaidHits = findMislaidNarration(mislaid)
+check(
+  mislaidHits.length === 1 &&
+    mislaidHits[0]!.lineIndex === 1 &&
+    mislaidHits[0]!.suspects.some((s) => s.name === 'reactive'),
+  '提示：讲解提到只在这一行后面才有的标识符 → 报出来',
+)
+
+// 回指前面定义过的东西是正常的（ref 在第 2 行定义过，第 3 行当然可以再提它）
+const backRef = structuredClone(exampleEpisode)
+backRef.parts[partOf(2)]!.text = '取值要加 value，这是 ref 定下的规矩。'
+check(findMislaidNarration(backRef).length === 0, '提示：回指前面定义过的标识符 → 不报')
+
+// 一个名字**前面出现过、后面又出现**，也不算「讲别的行」。
+// 第一版判据只写了「往后面找」，在这条上误报过一次 ——
+// 真实剧本里 `})` 那行的讲解提到 count（更早的行定义过、后面又用到），被冤枉了。
+const reMentioned: Episode = {
+  parts: [{ text: '先定义一个 count。' }, { text: '这里再改 count 的值。' }, { text: '最后把 count 打出来。' }],
+  scenes: [
+    {
+      template: 'CodeTyping',
+      startPart: 0,
+      props: {
+        fileName: 'x.ts',
+        lines: [
+          { code: 'const count = 0', part: 0 },
+          { code: 'run()', part: 1 },
+          { code: 'count = 1', part: 2 },
+        ],
+      },
+    },
+  ],
+}
+check(findMislaidNarration(reMentioned).length === 0, '提示：名字前面出现过、后面又出现 → 不报')
+
+// ★ 这条是拿旧剧本校准出来的，最要紧：
+//   偷来的那个名字**也写在 `import` 铺垫行里**（`import { reactive, effect }`），
+//   而铺垫行不算「引入」—— 讲稿从不讲它。第一版把铺垫行也算进去，于是
+//   已知的三处翻车一条都抓不到。这个 fixture 就是那处翻车的形状。
+const stolenFromNext: Episode = {
+  parts: [{ text: '第一步，用 effect 注册一个副作用。' }, { text: '第二步，读一下 state.n。' }],
+  scenes: [
+    {
+      template: 'CodeTyping',
+      startPart: 0,
+      props: {
+        fileName: 'x.ts',
+        lines: [
+          { code: "import { reactive, effect } from 'vue'" },
+          { code: 'const state = reactive({ n: 0 })', part: 0 },
+          { code: 'effect(() => console.log(state.n))', part: 1 },
+        ],
+      },
+    },
+  ],
+}
+const stolen = findMislaidNarration(stolenFromNext)
+check(
+  stolen.length === 1 && stolen[0]!.suspects.some((s) => s.name === 'effect'),
+  '提示：名字写在 import 铺垫行里也算「还没登场」→ 照样报出来',
+)
 
 // ---- 3. 反例：这些必须被拦住 ----
 //

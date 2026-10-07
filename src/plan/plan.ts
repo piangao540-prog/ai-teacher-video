@@ -2,6 +2,7 @@ import { copyFile, writeFile } from 'node:fs/promises'
 import { addLineNumbers, deriveEpisode, validateAuthored, type AuthoredEpisode } from './authoring'
 import { checkEditorial, validateEpisode, type Episode } from './episode'
 import { SYSTEM_PROMPT, buildUserPrompt } from './prompt'
+import { printEpisodeReview } from './review'
 import { describeSource, persistTopic, resolveSource, type Source } from './source'
 
 // 读 .env（Node 自带，不用装 dotenv）
@@ -174,40 +175,6 @@ function repairHint(problems: string[]): string {
   return hints.join('\n')
 }
 
-// 把讲稿逐段 + 每个代码/终端场景的「每一行 ↔ 它的讲解」打出来。
-//
-// 为什么要在这一步打：这套校验只管结构（段号、长度、画面装不装得下），
-// 管不了「模型编了一个不存在的 API」—— 讲稿的语义正确性一直靠模型自觉。
-// 文章模式下事实来自原文，主题模式下是**凭空**写的，所以这是花钱之前唯一的闸门。
-//
-// build-storyboard 打的那份带时间，是另一个视角：那份查音画错位，这份查内容是不是编的。
-function printEpisodeReview(ep: Episode): void {
-  console.log('')
-  console.log('--- 讲稿 ---')
-  ep.parts.forEach((p, i) => {
-    console.log('  [' + String(i).padStart(2) + '] ' + p.text)
-  })
-
-  ep.scenes.forEach((s) => {
-    const props = s.props as Record<string, unknown>
-    if (!Array.isArray(props.lines)) return
-    console.log('')
-    console.log('--- ' + s.template + ' 的每一行 ↔ 它的讲解 ---')
-    const lines = props.lines as Array<{ code?: string; text?: string; kind?: string; part?: number }>
-    for (const l of lines) {
-      const part = l.part
-      const body = l.code ?? l.text ?? ''
-      const narration =
-        typeof part === 'number'
-          ? (ep.parts[part]?.text ?? '⚠ 引用了不存在的 part ' + part)
-          : /^[\s}\]\);,]*$/.test(body)
-            ? '（收尾符号，紧接上一行出现）'
-            : '（铺垫行：讲稿里不专门讲它，跟着场景开头那句过渡出现）'
-      console.log('  ' + (l.kind === 'command' ? '$ ' : '') + body)
-      console.log('      └ ' + narration)
-    }
-  })
-}
 const messages: ChatMessage[] = [
   { role: 'system', content: SYSTEM_PROMPT },
   { role: 'user', content: await buildUserPrompt(source.text, source.kind) },
