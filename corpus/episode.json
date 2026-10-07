@@ -1,109 +1,103 @@
 {
   "parts": [
     {
-      "text": "Vue3 的响应式原理，是很多人学 Vue 时最卡的一关。"
+      "text": "今天我们来聊一聊 Promise，它是异步编程里最核心的一个工具，也是面试里绕不开的话题。"
     },
     {
-      "text": "先看它到底解决了什么问题。"
+      "text": "第一，它到底解决了什么让人头疼的问题。"
     },
     {
-      "text": "再看依赖收集发生在什么时候。"
+      "text": "第二，它的三种状态是怎么流转的。"
     },
     {
-      "text": "最后看为什么解构赋值会把响应式弄丢。"
+      "text": "第三，then 和 catch 应该怎么配合使用。"
     },
     {
-      "text": "先把它要解决的问题说清楚。"
+      "text": "最后，说说新手最容易踩进去的那个坑。"
     },
     {
-      "text": "我们希望数据一变，用到它的视图就自动更新。"
+      "text": "先看它要解决的问题，这决定了它为什么会出现。"
     },
     {
-      "text": "如果每次改数据都手动去改 DOM，代码会又乱又容易漏。"
+      "text": "早期用回调处理异步，一层套一层，代码很快就变成金字塔形状。"
     },
     {
-      "text": "响应式系统就是把这件事自动化，让数据驱动视图。"
+      "text": "每一层回调都要单独写错误处理，漏掉一个就埋下隐患。"
     },
     {
-      "text": "光说概念太虚，我们写一个最小能跑通的例子。"
+      "text": "多个异步操作之间的先后依赖，用回调很难清晰地表达出来。"
     },
     {
-      "text": "第一行，先用 ref 定义一个响应式数据，初始值是 0。"
+      "text": "Promise 把异步操作包装成一个对象，用链式调用把顺序写清楚。"
     },
     {
-      "text": "第二行，再用 effect 定义一个副作用函数，它会立刻执行一次。"
+      "text": "理解了它解决的问题，再看它的三种状态。"
     },
     {
-      "text": "第三行，函数里读取了 count 的值，这一步就触发了依赖收集。"
+      "text": "一开始是 pending，表示还在等待结果。"
     },
     {
-      "text": "第四行，effect 执行完，count 就把这个函数记在了自己的依赖列表里。"
+      "text": "调用 resolve 之后变成 fulfilled，表示成功。"
     },
     {
-      "text": "第五行，现在把 count 改成 1，count 会通知依赖列表里的函数重新执行。"
+      "text": "调用 reject 之后变成 rejected，表示失败。"
     },
     {
-      "text": "刚才那句改完之后，控制台又打印了一次，这就是完整的闭环。"
+      "text": "状态一旦改变就固定下来，不可能再变回 pending。"
     },
     {
-      "text": "读取数据的时候，把用到它的函数收集起来。"
+      "text": "看一个最小的例子，先理解它是怎么被创建出来的。"
     },
     {
-      "text": "写入数据的时候，通知这些函数重新执行。"
+      "text": "第一行，一秒之后调用 resolve，把成功的结果传出去。"
     },
     {
-      "text": "一收一发，就是整个响应式系统的全部秘密。"
+      "text": "第二行，用 then 注册回调，接收成功的结果并打印出来。"
     },
     {
-      "text": "理解了闭环，再看最容易搞错的地方。"
+      "text": "第三行，这行会先执行，说明 then 的回调是异步的。"
     },
     {
-      "text": "第一，依赖收集永远发生在读取数据的时候，不是写入的时候。"
+      "text": "再看错误处理和链式调用，这是它真正好用的地方。"
     },
     {
-      "text": "第二，解构赋值会把响应式弄丢，因为它只读了一次值。"
+      "text": "第一行，第一个 then 把响应体转成 JSON 对象。"
     },
     {
-      "text": "第三，需要解构就用 toRefs，它会把每个属性变成 ref。"
+      "text": "第二行，第二个 then 拿到数据，打印出用户名。"
     },
     {
-      "text": "我们来验证一下解构丢响应式这件事。"
+      "text": "第三行，catch 统一捕获前面任何一步抛出的错误。"
     },
     {
-      "text": "第一行，先用 reactive 定义一个响应式对象，里面放一个 n。"
+      "text": "第四行，finally 不管成功失败都会执行，适合做收尾清理。"
     },
     {
-      "text": "第二行，然后直接把 n 解构出来，这时候 n 只是一个普通的数字。"
+      "text": "把它跑起来，看看实际的输出顺序。"
     },
     {
-      "text": "第三行，在 effect 里打印这个 n，它并不会被依赖收集。"
+      "text": "先跑第一个例子。"
     },
     {
-      "text": "第四行，就算把 state 里的 n 改成 1，effect 也不会重新执行。"
+      "text": "再跑链式调用的例子。"
     },
     {
-      "text": "那正确的写法是什么样呢？换成 toRefs 就行。"
+      "text": "注意它每一步的输出顺序。"
     },
     {
-      "text": "第一行，还是先定义这个响应式对象。"
+      "text": "最后说一个最容易搞错的地方，理解了它才算真的会用。"
     },
     {
-      "text": "第二行，用 toRefs 再解构，拿到的就是一个 ref。"
+      "text": "构造函数里的代码是同步执行的，只有 then 的回调才是异步的。"
     },
     {
-      "text": "第三行，这次读取 nRef 的 value，依赖收集就正常工作了。"
+      "text": "then 里面忘了 return，下一个 then 就拿不到上一个的结果。"
     },
     {
-      "text": "第四行，再改 state 里的 n，effect 就会重新执行，响应式保住了。"
+      "text": "catch 处理完错误，后面仍然可以接着写 then 继续往下走。"
     },
     {
-      "text": "最后把它跑起来，看看实际输出。"
-    },
-    {
-      "text": "先运行第一个响应式例子。"
-    },
-    {
-      "text": "再运行解构那个例子。"
+      "text": "状态只能从 pending 变成成功或失败，之后不会再变。"
     }
   ],
   "scenes": [
@@ -111,202 +105,189 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "Vue3 响应式原理",
+        "title": "Promise 入门",
         "bullets": [
           {
-            "text": "它到底解决了什么问题",
+            "text": "它解决什么问题",
             "part": 1
           },
           {
-            "text": "依赖收集发生在什么时候",
+            "text": "三种状态怎么流转",
             "part": 2
           },
           {
-            "text": "为什么解构会丢响应式",
+            "text": "then 和 catch 怎么用",
             "part": 3
+          },
+          {
+            "text": "最容易踩的坑",
+            "part": 4
           }
         ]
       }
     },
     {
       "template": "SlideBullets",
-      "startPart": 4,
+      "startPart": 5,
       "props": {
-        "title": "它解决什么问题",
+        "title": "为什么需要 Promise",
         "bullets": [
           {
-            "text": "数据变了，视图要跟着变",
-            "part": 5
-          },
-          {
-            "text": "手动更新 DOM 太麻烦",
+            "text": "回调嵌套太深",
             "part": 6
           },
           {
-            "text": "响应式把这件事自动化",
+            "text": "错误不好统一处理",
             "part": 7
+          },
+          {
+            "text": "无法表达先后顺序",
+            "part": 8
+          },
+          {
+            "text": "Promise 把异步变成链式调用",
+            "part": 9
           }
         ]
       }
     },
     {
-      "template": "CodeTyping",
-      "startPart": 8,
+      "template": "SlideBullets",
+      "startPart": 10,
       "props": {
-        "fileName": "reactive-demo.ts",
-        "lines": [
+        "title": "三种状态",
+        "bullets": [
           {
-            "code": "import { ref, effect } from 'vue'"
-          },
-          {
-            "code": "const count = ref(0)",
-            "part": 9
-          },
-          {
-            "code": "effect(() => {",
-            "part": 10
-          },
-          {
-            "code": "  console.log('count is', count.value)",
+            "text": "pending 等待中",
             "part": 11
           },
           {
-            "code": "})",
+            "text": "fulfilled 已成功",
             "part": 12
           },
           {
-            "code": "count.value = 1",
+            "text": "rejected 已失败",
             "part": 13
+          },
+          {
+            "text": "状态不可逆",
+            "part": 14
           }
         ]
       }
     },
     {
-      "template": "SlideBullets",
-      "startPart": 14,
+      "template": "CodeTyping",
+      "startPart": 15,
       "props": {
-        "title": "响应式的闭环",
-        "bullets": [
+        "fileName": "promise-demo.js",
+        "lines": [
           {
-            "text": "读取时收集依赖",
-            "part": 15
+            "code": "const p = new Promise((resolve, reject) => {"
           },
           {
-            "text": "写入时触发通知",
+            "code": "  setTimeout(() => resolve('数据到了'), 1000)",
             "part": 16
           },
           {
-            "text": "这一收一发就是响应式",
+            "code": "})"
+          },
+          {
+            "code": "p.then(res => console.log(res))",
             "part": 17
+          },
+          {
+            "code": "console.log('这行会先执行')",
+            "part": 18
           }
         ]
       }
     },
     {
-      "template": "SlideBullets",
-      "startPart": 18,
+      "template": "CodeTyping",
+      "startPart": 19,
       "props": {
-        "title": "最容易搞错的地方",
-        "bullets": [
+        "fileName": "chain-demo.js",
+        "lines": [
           {
-            "text": "依赖收集发生在读取时",
-            "part": 19
+            "code": "fetch('/api/user')"
           },
           {
-            "text": "解构会丢掉响应式",
+            "code": "  .then(res => res.json())",
             "part": 20
           },
           {
-            "text": "用 toRefs 保住响应式",
+            "code": "  .then(data => console.log(data.name))",
             "part": 21
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 22,
-      "props": {
-        "fileName": "destructure-demo.ts",
-        "lines": [
-          {
-            "code": "import { reactive, effect, toRefs } from 'vue'"
           },
           {
-            "code": "const state = reactive({ n: 0 })",
+            "code": "  .catch(err => console.error(err))",
+            "part": 22
+          },
+          {
+            "code": "  .finally(() => console.log('请求结束'))",
             "part": 23
-          },
-          {
-            "code": "const { n } = state",
-            "part": 24
-          },
-          {
-            "code": "effect(() => console.log(n))",
-            "part": 25
-          },
-          {
-            "code": "state.n = 1",
-            "part": 26
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 27,
-      "props": {
-        "fileName": "toRefs-demo.ts",
-        "lines": [
-          {
-            "code": "import { reactive, effect, toRefs } from 'vue'"
-          },
-          {
-            "code": "const state = reactive({ n: 0 })",
-            "part": 28
-          },
-          {
-            "code": "const { n: nRef } = toRefs(state)",
-            "part": 29
-          },
-          {
-            "code": "effect(() => console.log(nRef.value))",
-            "part": 30
-          },
-          {
-            "code": "state.n = 2  // 触发更新",
-            "part": 31
           }
         ]
       }
     },
     {
       "template": "Terminal",
-      "startPart": 32,
+      "startPart": 24,
       "props": {
-        "title": "运行验证",
+        "title": "运行结果",
         "prompt": "$",
         "lines": [
           {
-            "text": "npx tsx reactive-demo.ts",
+            "text": "node promise-demo.js",
             "kind": "command",
-            "part": 33
+            "part": 25
           },
           {
-            "text": "count is 0",
+            "text": "这行会先执行",
             "kind": "output"
           },
           {
-            "text": "count is 1",
+            "text": "数据到了",
             "kind": "output"
           },
           {
-            "text": "npx tsx destructure-demo.ts",
+            "text": "node chain-demo.js",
             "kind": "command",
-            "part": 34
+            "part": 26
           },
           {
-            "text": "0",
+            "text": "Alice",
             "kind": "output"
+          },
+          {
+            "text": "请求结束",
+            "kind": "output"
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 28,
+      "props": {
+        "title": "常见误区",
+        "bullets": [
+          {
+            "text": "Promise 本身不是异步的",
+            "part": 29
+          },
+          {
+            "text": "忘了 return 会断链",
+            "part": 30
+          },
+          {
+            "text": "catch 之后还能继续 then",
+            "part": 31
+          },
+          {
+            "text": "状态一旦改变就不可逆",
+            "part": 32
           }
         ]
       }

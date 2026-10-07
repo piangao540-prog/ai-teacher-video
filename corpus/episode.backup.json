@@ -1,88 +1,103 @@
 {
   "parts": [
     {
-      "text": "Vue3 的响应式原理，听起来很玄，其实只解决一个问题。"
+      "text": "今天聊 Promise，初学者最容易卡在三个地方。"
     },
     {
-      "text": "数据变了，界面怎么自己跟着变，不用你手动操作 DOM。"
+      "text": "第一，为什么会有回调地狱这个说法。"
     },
     {
-      "text": "今天讲透三件事，让你以后不再踩坑。"
+      "text": "第二，Promise 的三种状态和 then 的链式调用。"
     },
     {
-      "text": "第一，ref 和 reactive 到底有什么区别。"
+      "text": "第三，新手最容易踩的三个坑。"
     },
     {
-      "text": "第二，依赖收集究竟发生在什么时候。"
+      "text": "先说它到底解决什么问题。"
     },
     {
-      "text": "第三，为什么解构赋值会把响应式弄丢。"
+      "text": "看这段典型的回调写法。"
     },
     {
-      "text": "先看第一个问题，ref 和 reactive 的区别。"
+      "text": "多个异步任务排队执行，回调会一层套一层。"
     },
     {
-      "text": "第一行，用 ref 定义一个计数器，初始值是 0。"
+      "text": "每一层都要单独写错误处理，很容易漏掉。"
     },
     {
-      "text": "第二行，取值的时候必须加 value，这是 ref 的规矩。"
+      "text": "代码越写越往右缩进，读起来非常痛苦。"
     },
     {
-      "text": "第三行，用 reactive 定义一个对象，里面放一个 n。"
+      "text": "Promise 的作用，就是把嵌套拉直成一条链。"
     },
     {
-      "text": "第四行，对象属性可以直接访问，不需要加 value。"
+      "text": "先看怎么把一个普通异步操作包成 Promise。"
     },
     {
-      "text": "一句话总结，ref 适合简单值，reactive 适合对象。"
+      "text": "第一行，把 setTimeout 包一层，到点就调用 resolve。"
     },
     {
-      "text": "接下来看第二个问题，依赖收集发生在什么时候。"
+      "text": "第二行，这样 wait 返回的就是一个 Promise 对象。"
     },
     {
-      "text": "关键在于，读取属性时会触发 get，顺便把当前的副作用记下来。"
+      "text": "第三行，调用 wait 传一千毫秒，得到一个 Promise。"
     },
     {
-      "text": "第一行，effect 注册一个副作用函数，它会立刻执行一次。"
+      "text": "第四行，用 then 接住成功的结果，打印一句话。"
     },
     {
-      "text": "第二行，函数里读取了 state.n，这一步就完成了依赖收集。"
+      "text": "第五行，用 catch 统一接住整条链上的错误。"
     },
     {
-      "text": "第三行，修改 state.n，触发 set，通知刚才收集到的副作用。"
+      "text": "Promise 内部有三种状态，这是理解它的关键。"
     },
     {
-      "text": "第四行，副作用重新执行，界面因此自动刷新。"
+      "text": "一开始是 pending，表示任务还在进行中。"
     },
     {
-      "text": "记住，先读后写，读的时候收集，写的时候触发。"
+      "text": "成功之后变成 fulfilled，会触发 then 的回调。"
     },
     {
-      "text": "最后看第三个问题，为什么解构会丢响应式。"
+      "text": "失败之后变成 rejected，会触发 catch 的回调。"
     },
     {
-      "text": "第一行，把 state 解构出来，n 变成了一个普通的数字。"
+      "text": "状态一旦改变就固定下来，不会再变第二次。"
     },
     {
-      "text": "第二行，打印 n，它和原来的响应式对象已经没关系了。"
+      "text": "then 会返回一个新的 Promise，所以可以一直链下去。"
     },
     {
-      "text": "因为解构只是取值，取出来的值不会保留追踪能力。"
+      "text": "链式调用最容易错的就是忘了返回值。"
     },
     {
-      "text": "想保留响应式，可以用 toRefs 把每个属性变成 ref。"
+      "text": "第一行，这里返回 v 加一，值会传给下一个 then。"
     },
     {
-      "text": "第一行，用 toRefs 把 state 转成一组 ref。"
+      "text": "第二行，这里拿到的是二，说明值确实传下来了。"
     },
     {
-      "text": "第二行，解构出来的 n 依然是响应式的，可以放心用。"
+      "text": "第三行，如果上一个 then 没写 return，这里就是 undefined。"
     },
     {
-      "text": "这就是解构丢响应式的真相，也是面试常考的点。"
+      "text": "再讲几个最容易搞错的地方。"
     },
     {
-      "text": "把这三件事串起来，响应式就不再神秘了。"
+      "text": "第一个坑，then 里忘了 return，下一个 then 拿不到值。"
+    },
+    {
+      "text": "第二个坑，构造函数里同步抛出的错误不会自动变成 reject。"
+    },
+    {
+      "text": "第三个坑，then 的回调不会立刻执行，永远排在同步代码之后。"
+    },
+    {
+      "text": "最后把例子跑起来，看看输出顺序。"
+    },
+    {
+      "text": "用 node 直接运行这个文件。"
+    },
+    {
+      "text": "可以看到，同步代码永远排在 then 前面。"
     }
   ],
   "scenes": [
@@ -90,174 +105,178 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "Vue3 响应式原理",
+        "title": "Promise 到底解决了什么",
         "bullets": [
           {
-            "text": "ref 和 reactive 的区别",
+            "text": "回调地狱的痛点",
+            "part": 1
+          },
+          {
+            "text": "三种状态与链式调用",
+            "part": 2
+          },
+          {
+            "text": "最常见的三个坑",
             "part": 3
-          },
-          {
-            "text": "依赖收集发生在什么时候",
-            "part": 4
-          },
-          {
-            "text": "为什么解构会丢响应式",
-            "part": 5
           }
         ]
       }
     },
     {
-      "template": "CodeTyping",
-      "startPart": 6,
+      "template": "SlideBullets",
+      "startPart": 4,
       "props": {
-        "fileName": "ref-vs-reactive.ts",
-        "lines": [
+        "title": "回调地狱长什么样",
+        "bullets": [
           {
-            "code": "import { ref, reactive } from 'vue'"
+            "text": "异步任务一个接一个嵌套",
+            "part": 6
           },
           {
-            "code": "const count = ref(0)",
+            "text": "错误处理分散在每一层",
             "part": 7
           },
           {
-            "code": "count.value  // 0",
+            "text": "代码横向发展读不下去",
             "part": 8
           },
           {
-            "code": "const state = reactive({ n: 0 })",
+            "text": "Promise 把它拉直成一条链",
             "part": 9
-          },
-          {
-            "code": "state.n  // 0",
-            "part": 10
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 11,
-      "props": {
-        "title": "一句话总结",
-        "bullets": [
-          {
-            "text": "ref 适合简单值，访问要加 value",
-            "part": 11
-          },
-          {
-            "text": "reactive 适合对象，属性直接访问",
-            "part": 11
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 12,
+      "startPart": 10,
       "props": {
-        "fileName": "effect.ts",
+        "fileName": "promise-demo.js",
         "lines": [
           {
-            "code": "import { reactive, effect } from 'vue'"
+            "code": "const wait = (ms) => new Promise((resolve) => {"
           },
           {
-            "code": "const state = reactive({ n: 0 })",
+            "code": "  setTimeout(resolve, ms)",
+            "part": 11
+          },
+          {
+            "code": "})",
+            "part": 12
+          },
+          {
+            "code": "wait(1000)",
+            "part": 13
+          },
+          {
+            "code": "  .then(() => console.log('一秒后'))",
             "part": 14
           },
           {
-            "code": "effect(() => console.log(state.n))",
+            "code": "  .catch((err) => console.error(err))",
             "part": 15
-          },
-          {
-            "code": "state.n = 1  // 再次打印 1",
-            "part": 16
           }
         ]
       }
     },
     {
       "template": "SlideBullets",
-      "startPart": 17,
+      "startPart": 16,
       "props": {
-        "title": "依赖收集的口诀",
+        "title": "三种状态与链式调用",
         "bullets": [
           {
-            "text": "读属性时收集依赖",
+            "text": "pending 等待中",
+            "part": 17
+          },
+          {
+            "text": "fulfilled 成功",
             "part": 18
           },
           {
-            "text": "写属性时触发副作用",
-            "part": 18
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 19,
-      "props": {
-        "fileName": "destructure.ts",
-        "lines": [
-          {
-            "code": "import { reactive } from 'vue'"
+            "text": "rejected 失败",
+            "part": 19
           },
           {
-            "code": "const state = reactive({ n: 0 })",
+            "text": "状态一旦改变就不再变",
             "part": 20
           },
           {
-            "code": "const { n } = state",
+            "text": "then 返回新的 Promise",
             "part": 21
-          },
-          {
-            "code": "console.log(n)  // 普通数字",
-            "part": 22
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 23,
+      "startPart": 22,
       "props": {
-        "fileName": "to-refs.ts",
+        "fileName": "chain-demo.js",
         "lines": [
           {
-            "code": "import { reactive, toRefs } from 'vue'"
+            "code": "Promise.resolve(1)"
           },
           {
-            "code": "const state = reactive({ n: 0 })",
+            "code": "  .then((v) => v + 1)",
+            "part": 23
+          },
+          {
+            "code": "  .then((v) => console.log(v))",
             "part": 24
           },
           {
-            "code": "const { n } = toRefs(state)",
+            "code": "  .then((v) => console.log(v))",
             "part": 25
-          },
-          {
-            "code": "n.value = 1  // 依然响应式",
-            "part": 26
           }
         ]
       }
     },
     {
       "template": "SlideBullets",
-      "startPart": 27,
+      "startPart": 26,
       "props": {
-        "title": "记住这三件事",
+        "title": "三个常见的坑",
         "bullets": [
           {
-            "text": "ref 与 reactive 各管一摊",
+            "text": "忘写 return 链就断了",
             "part": 27
           },
           {
-            "text": "读时收集，写时触发",
-            "part": 27
+            "text": "构造函数里抛错不会 reject",
+            "part": 28
           },
           {
-            "text": "解构要用 toRefs 兜底",
-            "part": 27
+            "text": "then 回调永远是异步的",
+            "part": 29
+          }
+        ]
+      }
+    },
+    {
+      "template": "Terminal",
+      "startPart": 30,
+      "props": {
+        "title": "运行 promise-demo",
+        "prompt": "$",
+        "lines": [
+          {
+            "text": "node promise-demo.js",
+            "kind": "command",
+            "part": 31
+          },
+          {
+            "text": "先打印这句",
+            "kind": "output"
+          },
+          {
+            "text": "一秒后",
+            "kind": "output"
+          },
+          {
+            "text": "// 同步代码永远先执行",
+            "kind": "command",
+            "part": 32
           }
         ]
       }
