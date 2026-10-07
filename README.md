@@ -30,7 +30,7 @@ out/render/final.mp4
 | `pnpm plan --dry …` | 只判别「这次按文章还是按主题跑」，不调模型、不写文件 | 瞬间 |
 | `pnpm say` | 生成配音 + 词级时间戳 | 30–60 秒 |
 | `pnpm storyboard` | 把段号解析成真实时间 **+ 生成字幕**（含外挂 `.srt` / `.vtt`） | 瞬间 |
-| `pnpm dev` | 浏览器预览（**有声音**、可拖时间条、字幕可开关） | — |
+| `pnpm dev` | **生成面板 + 浏览器预览**：上半页输入一句话 → 生成剧本 → 自动配音、切时间轴（全程实时日志），下半页就能播这一版（有声音、可拖时间条、字幕可开关）。配音单独挂了「只重配音」按钮 | 生成几十秒 + 配音半分钟 |
 | `pnpm video` | 一键出片（字幕烧进画面） | 3 分钟视频约 3.5 分钟 |
 | `pnpm shot 20000` | 只截第 20000 毫秒那一帧（调试画面） | 几秒 |
 | `pnpm shot:cue 3` | 截第 3 条字幕中间那一帧（**校对字幕最顺手**） | 几秒 |
@@ -150,11 +150,26 @@ out/render/final.mp4
 后半句是语义，补不上。
 （`episode.ts` 和 `authoring.ts` 的头注释记着这两次打脸的经过。）
 
-**代价（2026-10 真跑才发现，尚未处理）**：`CodeTyping` 的 gutter 号是从 1 数到底、
-**铺垫行也占一格**，而旁白数的号不数铺垫行 —— 于是旁白说「第一行，先用 ref 定义一个
-响应式数据」，画面上高亮的 `const count = ref(0)` 左边写的却是 **2**。观众读的是画面上的
-号，两边对不上。（这**不是**音画错位：元素出现的时刻和它那句话是同毫秒的，只是号对不上。）
-两个方向：让 gutter 不数铺垫行，或把旁白的口径改回去（不划算）。
+**画面上的号也是同一个口径（2026-10-07 修）**：`CodeTyping` 的 gutter 曾经是从 1 数到底、
+**铺垫行也占一格** —— 于是旁白说「第一行」，画面上高亮的行左边却写着 **2**。
+观众读的是画面上的号，两边对不上。（那**不是**音画错位：元素出现的时刻和它那句话是
+同毫秒的，只是号对不上。）
+
+改的是**画面**，不是旁白 —— 口径有四处在说（`addLineNumbers` / `checkCodeNarration` /
+`narration-hint` ×2），落单的是 gutter 一个。现在号只有一个来源：
+
+    narratedOrdinals(lines)   →  每一行该显示几号，没 part 的行是 null
+      ├─ addLineNumbers      补旁白的「第 N 行，」
+      ├─ checkCodeNarration  校验序数自洽
+      └─ build-storyboard    写进 storyboard 的 step → CodeTyping.vue 画 gutter
+
+**为什么逐行标号、而不是「旁白号 = 物理行号 − 铺垫行数」**：铺垫行被规则钉在最前面，
+但**收尾行**（空行、只有 `}`/`)`/`;`/`,` 的行）可以出现在第一个 `part` 之前，偏移量不是常数。
+
+**为什么 `step` 缺失时那格留空、不回退成 `i + 1`**：那是**已知是错的**旧答案。
+留空是看得见的「storyboard 是旧的」（跑一次 `pnpm storyboard` 就有），
+好过静默给个错的。铺垫行那格也留空 —— 它是学习者要读的代码，只是没有专门讲它的那句话，
+所以不占号，但也没调暗。
 
 两处和行号有关的细节：
 
@@ -284,7 +299,9 @@ corpus/
   example-episode.json   给 AI 看的范例（few-shot，**创作格式**）
 src/
   plan/                  第 1、2 环：素材 → 剧本
-    plan.ts              LLM 调用 + 校验 + 重试 + 推导
+    plan.ts              `pnpm plan` 的**外壳**：解析参数、读 .env、打印、落盘、定 exit code
+    generate.ts          ★ 调模型 + 校验 + 重试 + 落盘（**不打印、不 exit**）——
+                         剥出来是为了 `pnpm dev` 的页面能复用同一条链路
     prompt.ts            提示词（改这里来调内容取向）
     source.ts            输入判别：这次是文章还是主题（纯函数，可单独验）
     authoring.ts         ★ **创作格式**（模型写的）→ 渲染格式的推导
@@ -297,6 +314,15 @@ src/
     build-storyboard.ts  段号 → 真实时间（顺带切字幕、导外挂字幕）
     subtitle.ts          ★ 字幕切分：词级时间戳 → 一条条字幕
     subtitle-export.ts   字幕 → .srt / .vtt（给 B 站/YouTube 用的外挂字幕）
+  plan-ui/               生成面板（浏览器侧，**只做显示和转发**）
+    Plan.vue             输入框 + 日志区 + 结果区（含「只重配音」按钮）
+    mount.ts             挂到 index.html 的 #plan（`?render` 时不加载）
+  server/
+    plan-api.ts          ★ `POST /api/plan`：生成剧本，SSE 回进度；跑完接着调
+                         `say` / `storyboard`，让新剧本当场能播。
+                         ★ `POST /api/render`：剧本不动，只重跑配音 + 时间轴。
+                         密钥、写盘、调模型、起 TTS 子进程全在 Node 这一侧 ——
+                         浏览器能算的只有「画面 = t 的函数」
   tts/                   第 3 环：配音
     speak.ts             统一入口（按 .env 选供应商）
   render/                第 4 环：画面
