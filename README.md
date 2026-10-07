@@ -30,6 +30,7 @@ out/render/final.mp4
 | `pnpm plan --dry …` | 只判别「这次按文章还是按主题跑」，不调模型、不写文件 | 瞬间 |
 | `pnpm say` | 生成配音 + 词级时间戳 | 30–60 秒 |
 | `pnpm storyboard` | 把段号解析成真实时间 **+ 生成字幕**（含外挂 `.srt` / `.vtt`） | 瞬间 |
+| `pnpm status` | **体检 `out/render/` 那五环是不是同一版**（剧本 → 配音 → 时间轴 → 画面 → 成片）。只报不拦，退出码永远是 0 | 1 秒 |
 | `pnpm dev` | **生成面板 + 浏览器预览**：上半页输入一句话 → 生成剧本 → 自动配音、切时间轴（全程实时日志），下半页就能播这一版（有声音、可拖时间条、字幕可开关）。配音单独挂了「只重配音」按钮 | 生成几十秒 + 配音半分钟 |
 | `pnpm video` | 一键出片（字幕烧进画面） | 3 分钟视频约 3.5 分钟 |
 | `pnpm shot 20000` | 只截第 20000 毫秒那一帧（调试画面） | 几秒 |
@@ -285,6 +286,63 @@ out/render/final.mp4
 
 想改字幕，重跑 `pnpm storyboard` 就够了 —— 不用重新配音，也不用重新生成剧本。
 
+## 产物之间怎么互相认版本（`src/render/artifacts.ts`）
+
+这条链有五环，**每一环都是上一环的派生物**：
+
+```
+corpus/episode.json ──▶ audio/timings.json ──▶ storyboard.json ──▶ render-meta.json + frames/ ──▶ final.mp4
+       剧本                   配音                  时间轴                    画面                    成片
+```
+
+手工只跑了其中一步，`out/render/` 就会**半新半旧**：画面上是上一版的时间轴、
+声音是这一版的剧本，而**没有任何地方会报错**。这个坑在 HANDOFF 里记过三次，
+三次都是靠人眼发现的。
+
+所以每一环都写下「我是从哪一版来的」：
+
+| 产物 | 记了什么 |
+|---|---|
+| `audio/timings.json` | `builtFrom: { episode }` |
+| `storyboard.json` | `builtFrom: { episode, timings }` |
+| `render-meta.json` | `builtFrom: { storyboard }`、`partial` |
+| `final.mp4` | 不用记，时长由 `probeDurationMs()` 反查 |
+
+### 判据是**内容指纹**，不是 mtime
+
+sha1 前 12 位。mtime 区分不了「重跑了一遍但内容没变」和「真的换了一版」，
+还会被复制 / `git checkout` / 随手 `touch` 无谓地扰动。指纹只回答一个问题：
+**这一版是不是从那一版来的**。（它不是加密，也不防篡改。）
+
+指纹比的是**当前磁盘上的文件**，不是别处记下来的值 —— 这样「谁是最新的」
+这个问题不需要有人来回答。
+
+### 判不了 ≠ 没问题
+
+强判据（指纹）要产物配合，弱判据（时长对不上）不用 —— 所以两档都出：
+
+- **强**：指纹对上 → `✓`；对不上 → `✗`；**没有指纹 → `？`**
+- **弱**：时长差得超过容差 → `✗ 一定不是同一版`
+
+`？`（不知道是哪一版）**不能当成 ✓** —— 那样一个加自检之前生成的旧文件
+就能绕过整套检查。所以加完这个模块第一次跑，报的是 `？`，不是「一切正常」。
+
+### 四条边分开，各自的消费者只卡自己那条
+
+**不能做成「任意一条断了就拦」** —— 那样 `pnpm video` 会每次都把自己拦住：
+它走到 `encode` 时 `final.mp4` 必然还是**上一部片子**，时长和新写的
+`render-meta` 必然对不上。
+
+| 消费者 | 卡哪条边 | 为什么 |
+|---|---|---|
+| `pnpm status` | 四条全报 | 只报不拦，它就是给你看的 |
+| `pnpm encode` | 时间轴 → 画面（外加 `partial`） | 它正要拿 `frames/` 去编码，画面不是这一版的就没有意义 |
+| 页面（`pnpm dev`） | 前两条 | 预览是浏览器照 `storyboard.json` **现算**的，不读 `frames/`；而且后两条在 A+ 跑完时必然断（要等 `pnpm video`），算进去标签就永远亮着 |
+
+`pnpm encode` 拦下来的时候，一个字节都没写；确认就是要拿这批旧画面出片，
+走 `pnpm encode --allow-stale`。顺带：`partial`（只渲了前 N 秒的对拍产物）
+现在也拦 —— 拿它配 `-shortest` 会**静默**出一部 N 秒的片子。
+
 ## 目录
 
 ```
@@ -321,11 +379,15 @@ src/
     plan-api.ts          ★ `POST /api/plan`：生成剧本，SSE 回进度；跑完接着调
                          `say` / `storyboard`，让新剧本当场能播。
                          ★ `POST /api/render`：剧本不动，只重跑配音 + 时间轴。
+                         ★ `GET /api/status`：前两条边断没断（控制栏那个小标签用）。
                          密钥、写盘、调模型、起 TTS 子进程全在 Node 这一侧 ——
                          浏览器能算的只有「画面 = t 的函数」
   tts/                   第 3 环：配音
     speak.ts             统一入口（按 .env 选供应商）
   render/                第 4 环：画面
+    artifacts.ts         ★ **五环是不是同一版**的唯一判据：路径常量 + 内容指纹
+                         + 体检。`pnpm status` / `pnpm encode` / 页面都读它
+    status.ts            `pnpm status`：把体检打成一屏（只报不拦）
     scenes/              场景组件（你可以自己加）
     scenes/sceneState.ts ★ 场景的「帧签名」：渲染和复用判据共用同一份公式
     stage/Stage.vue      舞台：按时间轴切场景
@@ -336,6 +398,7 @@ templates/               主题、字体、配色（观感 80% 在这里）
 out/render/              产物：音频、frames、storyboard.json、final.mp4
                          外挂字幕：subtitles.srt / subtitles.vtt
                          narration.txt：派生的纯文本讲稿（看一眼用的）
+                         —— 这几份之间「谁是哪一版」，`pnpm status` 说了算
 ```
 
 ## 配置（`.env`，不提交）
@@ -356,6 +419,11 @@ LLM_ATTEMPTS=5
 
 **渲染**
 
+- **手工只跑一步，`out/render/` 就会半新半旧，而且不出声。** 这一条栽过三次
+  （文档里写着 138220ms、实际是 153020；storyboard 是这一版、`final.mp4` 是上一版），
+  三次都是人眼发现的。现在每份产物记自己被谁派生的（内容指纹），
+  一条 `pnpm status` 就能看出来；`pnpm encode` 还会在画面对不上时间轴时**拦住**。
+  判据只有一份，在 `src/render/artifacts.ts` —— 别在别处再写第二套「新旧」判断。
 - **不能用 `file://` 打开构建产物。** 浏览器会以跨域为由拦掉 `<script type="module">`，
   页面根本不启动。必须在脚本里起一个本地静态服务器。
 - **Playwright 自带的 ffmpeg 是精简版**，没有 mp4 封装器、没有 libx264，
