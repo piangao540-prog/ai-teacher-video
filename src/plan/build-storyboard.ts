@@ -7,6 +7,9 @@ import { toSrt, toVtt } from './subtitle-export'
 //   这个常量决定「第几个字符什么时候出现」，分镜和渲染必须是同一个值 ——
 //   以前两边各写一个 45、靠一句注释维持，正是复用判据踩过的那种坑。
 import { CHAR_MS, termLineDurationMs } from '../render/scenes/sceneState'
+// ★ 输入路径也从 artifacts.ts 取，不在这里再写一遍字面量：
+//   下面要拿它对文件做指纹，**读的路径和算指纹的路径必须是同一个**。
+import { EPISODE_FILE, STORYBOARD_FILE, TIMINGS_FILE, fileId } from '../render/artifacts'
 
 type Word = { text: string; startMs: number; durationMs: number }
 
@@ -14,7 +17,7 @@ const LINE_GAP_MS = 200
 
 const outRoot = path.resolve('out/render')
 
-const episode = JSON.parse(await readFile(path.resolve('corpus/episode.json'), 'utf8')) as Episode
+const episode = JSON.parse(await readFile(EPISODE_FILE, 'utf8')) as Episode
 
 const problems = validateEpisode(episode)
 if (problems.length > 0) {
@@ -23,7 +26,7 @@ if (problems.length > 0) {
   process.exit(1)
 }
 
-const timings = JSON.parse(await readFile(path.join(outRoot, 'audio', 'timings.json'), 'utf8')) as {
+const timings = JSON.parse(await readFile(TIMINGS_FILE, 'utf8')) as {
   durationMs: number
   audioFile: string
   provider: string
@@ -173,9 +176,14 @@ const storyboard = {
   voice: timings.voice,
   scenes,
   cues,
+  // 「我是从哪两版切出来的」。两份输入各记一个指纹 ——
+  // 只记一个的话，「剧本改了但配音没重跑」和「配音重跑了但剧本没改」
+  // 会退化成同一种表现，报出来的话就不准。
+  // 怎么用，见 src/render/artifacts.ts 的头注释。
+  builtFrom: { episode: await fileId(EPISODE_FILE), timings: await fileId(TIMINGS_FILE) },
 }
 
-await writeFile(path.join(outRoot, 'storyboard.json'), JSON.stringify(storyboard, null, 2) + '\n')
+await writeFile(STORYBOARD_FILE, JSON.stringify(storyboard, null, 2) + '\n')
 
 // ---- 外挂字幕（.srt / .vtt）----
 //

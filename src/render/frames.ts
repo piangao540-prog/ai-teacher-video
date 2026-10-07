@@ -1,13 +1,14 @@
 import { chromium } from 'playwright'
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { fileId, META_FILE, STORYBOARD_FILE } from './artifacts'
 import { startStageServer } from './serve-dist'
 
 const FPS = Number(process.argv[2] ?? 30)
 
 const outRoot = path.resolve('out/render')
 const framesDir = path.join(outRoot, 'frames')
-const storyboardPath = path.join(outRoot, 'storyboard.json')
+const storyboardPath = STORYBOARD_FILE
 
 // 关掉静态帧复用，用来和开启时逐帧对拍（见 README 里那次验证）
 const NO_REUSE = process.env.FRAMES_NO_REUSE === '1'
@@ -21,10 +22,17 @@ try {
   throw new Error('读不到 out/render/storyboard.json，先跑 pnpm storyboard')
 }
 
-const DURATION_MS = Number(process.argv[3] ?? 0) || storyboard.durationMs
+// 给了第三个参数就是**缩短跑**（对拍/试片用，只渲前 N 毫秒）。
+// ★ 这件事必须记进 render-meta：不然一个只渲了 60 秒的 frames/ 目录，
+//   从记录上看和整片一模一样，而 encode 拿它配 `-shortest` 会**静默**
+//   出一部 60 秒的片子 —— 没有任何东西挡得住。
+const argDuration = Number(process.argv[3] ?? 0)
+const DURATION_MS = argDuration || storyboard.durationMs
+const PARTIAL = argDuration > 0
 const frameCount = Math.round((DURATION_MS / 1000) * FPS)
 
 console.log('时长: ' + DURATION_MS + 'ms  ->  ' + frameCount + ' 帧 @ ' + FPS + 'fps')
+if (PARTIAL) console.log('★ 缩短跑：只渲前 ' + DURATION_MS + 'ms，不是整片')
 if (NO_REUSE) console.log('静态帧复用: 关闭（对拍模式）')
 
 await rm(framesDir, { recursive: true, force: true })
@@ -130,9 +138,22 @@ try {
   stage.close()
 }
 
+// 这份记录是「`frames/` 里那几千张 PNG 属于哪一版」的**唯一**依据 ——
+// 单张 PNG 上没有任何地方能记这件事。所以指纹一定要写。
+// 注意指纹取的是**刚读的那个文件**，读完到这里之间没有别人动过它。
 await writeFile(
-  path.join(outRoot, 'render-meta.json'),
-  JSON.stringify({ fps: FPS, frameCount, durationMs: DURATION_MS }, null, 2) + '\n',
+  META_FILE,
+  JSON.stringify(
+    {
+      fps: FPS,
+      frameCount,
+      durationMs: DURATION_MS,
+      builtFrom: { storyboard: await fileId(storyboardPath) },
+      partial: PARTIAL,
+    },
+    null,
+    2,
+  ) + '\n',
 )
 
 console.log('frames: ' + framesDir)

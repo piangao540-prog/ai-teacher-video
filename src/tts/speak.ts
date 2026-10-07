@@ -3,6 +3,7 @@ import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { findFfmpeg, probeDurationMs } from '../compose/ffmpeg'
 import { narrationOf, validateEpisode, type Episode } from '../plan/episode'
+import { fileId } from '../render/artifacts'
 import { deriveTimingsFromCed, type CharTiming, type CedAnchor } from './ced-timing'
 import { pcmToWav } from './wav'
 import { synthesizeXfyun } from './xfyun'
@@ -123,6 +124,10 @@ await writeFile(
       needsAlignment: words.length === 0,
       anchors,
       words,
+      // 记下「我是对着哪一版剧本配的」。用**实际读的那个文件**（argv 可以覆盖），
+      // 不是写死 corpus/episode.json —— 判据要跟着真实输入走。
+      // 怎么用、为什么用指纹而不是 mtime，见 src/render/artifacts.ts 的头注释。
+      builtFrom: { episode: await fileId(episodeFile) },
     },
     null,
     2,
