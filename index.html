@@ -2,12 +2,17 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <title>ai-teacher stage</title>
+    <title>ai-teacher</title>
     <style>
       body { margin: 0; background: #111; }
+      /* 生成面板的容器。出片走 ?render=1，那一支里它永远是空的 ——
+         :empty 让空容器彻底不占位，保证那一支的像素和加面板之前逐字一致。 */
+      #plan:empty { display: none; }
     </style>
   </head>
   <body>
+    <!-- 生成入口。?render 时 main.ts 不会往里挂任何东西 -->
+    <div id="plan"></div>
     <div id="app"></div>
     <script type="module" src="/src/render/stage/main.ts"></script>
   </body>

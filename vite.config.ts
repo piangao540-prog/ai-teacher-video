@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { planApi } from './src/server/plan-api'
 
 const MIME: Record<string, string> = {
   '.json': 'application/json; charset=utf-8',
@@ -43,8 +44,20 @@ function stageDataPlugin(): Plugin {
   }
 }
 
+// 「输入一句话 → 生成剧本」的 POST 端点。
+// 和 stageDataPlugin 是同一个路数：接着往同一条中间件链上挂一段，
+// 不另起服务器、不引入框架。业务逻辑在 src/server/plan-api.ts。
+function planApiPlugin(): Plugin {
+  return {
+    name: 'plan-api',
+    configureServer(server) {
+      server.middlewares.use(planApi())
+    },
+  }
+}
+
 export default defineConfig({
   // 用 file:// 直接打开构建产物时必须是相对路径
   base: './',
-  plugins: [vue(), stageDataPlugin()],
+  plugins: [vue(), stageDataPlugin(), planApiPlugin()],
 })
