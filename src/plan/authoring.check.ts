@@ -18,7 +18,7 @@
 
 import { readFile } from 'node:fs/promises'
 import { addLineNumbers, deriveEpisode, validateAuthored, type AuthoredEpisode } from './authoring'
-import { checkEditorial, cnOrdinal, validateEpisode, type Episode } from './episode'
+import { checkEditorial, cnOrdinal, narratedOrdinals, validateEpisode, type Episode } from './episode'
 import { findMislaidNarration } from './narration-hint'
 
 const ok: string[] = []
@@ -117,6 +117,26 @@ check(
 check(
   JSON.stringify(addLineNumbers(numbered)) === JSON.stringify(numbered),
   '补行号是幂等的（跑两遍不会加两次）',
+)
+
+// ★ 一个口径，三处消费者：旁白（addLineNumbers 补的「第 N 行」）、校验
+//   （checkCodeNarration 的序数自洽）、**画面**（build-storyboard 写进
+//   storyboard 的 step，CodeTyping.vue 拿它当 gutter）。
+//   这里把「旁白补出来的号」和「narratedOrdinals 给的号」钉成同一个：
+//   哪天谁又自己数了一遍，这条会红。旁白说「第一行」而画面 gutter 显示 2
+//   就是这么来的 —— 两处各数各的，谁也不冤谁。
+const ordinals = narratedOrdinals(exampleCodeLines)
+check(
+  exampleCodeLines.every((l, i) => {
+    const n = ordinals[i]
+    if (typeof l.part !== 'number') return n === null
+    return numbered.parts[l.part]!.text.startsWith('第' + cnOrdinal(n!) + '行，')
+  }),
+  '行号只有一个口径：narratedOrdinals 给的号 == 旁白补的「第 N 行」',
+)
+check(
+  ordinals[0] === null && ordinals[1] === 1,
+  '行号：铺垫行不给号（null），旁白说的「第一行」拿到 1',
 )
 // 程序补的号必须自己就过得了那条序数检查 —— 否则「收走行号」等于把 bug 换了个位置。
 const numberedEditorial = checkEditorial(numbered).filter((p) => !p.includes('太短'))

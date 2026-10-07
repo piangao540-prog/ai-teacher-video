@@ -28,7 +28,16 @@ const state = computed(() => codeStateAt(props.t, props.lines))
       <div class="body">
         <div v-for="(line, i) in lines" :key="i" class="line"
              :class="{ active: state.activeLine === i }">
-          <span class="gutter">{{ i + 1 }}</span>
+          <!--
+            号是 line.step，**不是 i + 1**。
+            step 由 build-storyboard 用 narratedOrdinals 算好写进 storyboard.json，
+            和旁白念的「第 N 行」是同一个数 —— 所以听到「第一行」时，高亮那行的号就是 1。
+            没讲解的行（铺垫行、`}` 这类收尾行）是 null，这一格留空：它仍然是要读的
+            代码，只是没有专门讲它的那句话，所以不占号，也不调暗。
+            step 缺失（storyboard 还是旧格式）时也留空 —— 看得见，好过回退成 i + 1
+            那个**已知是错的**答案。
+          -->
+          <span class="gutter">{{ line.step ?? '' }}</span>
           <span class="text">{{ line.code.slice(0, state.typed[i]) }}</span>
           <span v-if="state.activeLine === i && state.caret" class="caret">▌</span>
         </div>

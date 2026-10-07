@@ -6,7 +6,10 @@ export const BLINK_MS = 530
 export const SLIDE_FADE_MS = 400
 export const SLIDE_TITLE_FADE_MS = 600
 
-export type CodeLine = { code: string; atMs: number }
+// step：gutter 上显示几号 —— 就是旁白会念的「第 N 行」里的 N，没讲解的行是 null。
+// 它是**静态的**（不随 t 变），所以不进帧签名；由 build-storyboard 算好写进来，
+// 口径和 addLineNumbers 是同一个函数（narratedOrdinals）。
+export type CodeLine = { code: string; atMs: number; step?: number | null }
 
 export type CodeState = { activeLine: number; caret: boolean; typed: number[] }
 

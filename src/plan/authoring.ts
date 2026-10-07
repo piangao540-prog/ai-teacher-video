@@ -48,7 +48,7 @@
 //   推导出来的仍然是老格式，所以 render/、build-storyboard、字幕、编码
 //   整条下游一行都不用改。分层换来的是：模型面对的东西不需要、也不允许有编号。
 
-import { cnOrdinal, mentionsNthLine, type Episode, type Part, type SceneSpec } from './episode'
+import { cnOrdinal, mentionsNthLine, narratedOrdinals, type Episode, type Part, type SceneSpec } from './episode'
 
 /** 一句话，或几句话。场景和元素共用同一个字段名，模型不用选「这一句该填哪个字段」。 */
 export type Say = string | string[]
@@ -244,7 +244,8 @@ export function deriveEpisode(authored: AuthoredEpisode): Episode {
 /**
  * 给代码场景的讲解补上「第 N 行，」。纯函数，不校验、不读盘。
  *
- * N 数的是**本块里写了 say 的第 N 行**（铺垫行不数）—— 和 checkCodeNarration 一个口径。
+ * N 数的是**本块里写了 say 的第 N 行**（铺垫行不数）—— 号由 narratedOrdinals 给，
+ * 和 checkCodeNarration 的校验、**以及画面 gutter 上显示的那个数**，是同一份。
  * 数是程序自己刚摆好的顺序，所以「第 N 行」这句**永远是真话**：
  * 会数错的那个主体（模型）已经不参与这件事了。
  *
@@ -265,16 +266,20 @@ export function addLineNumbers(episode: Episode): Episode {
     const lines = (scene.props as { lines?: unknown }).lines
     if (!Array.isArray(lines)) return scene
 
-    let nth = 0
-    for (const raw of lines) {
+    // 号从 narratedOrdinals 来（episode.ts）—— 和画面 gutter 上的号是**同一份**。
+    // 这里曾经自己数一遍，于是旁白说「第一行」、画面 gutter 显示 2。
+    const ordinals = narratedOrdinals(lines as Array<{ part?: number }>)
+
+    lines.forEach((raw, i) => {
       const part = (raw as { part?: unknown } | null)?.part
-      if (typeof part !== 'number') continue
-      nth += 1
+      if (typeof part !== 'number') return
+      const nth = ordinals[i]
+      if (nth == null) return
 
       const text = parts[part]?.text
-      if (typeof text !== 'string' || mentionsNthLine(text)) continue
+      if (typeof text !== 'string' || mentionsNthLine(text)) return
       parts[part] = { text: '第' + cnOrdinal(nth) + '行，' + text }
-    }
+    })
     return scene
   })
 

@@ -337,6 +337,31 @@ export function checkEditorial(episode: Episode): string[] {
 //     校验跑在补行号之前，而那时讲稿里根本没有行号。
 //     留着它是因为**手写的渲染格式剧本**（episode.json 手改）仍然需要对得上的自洽检查
 //     —— 那种情况下它依然是对的。
+/**
+ * 每一行该显示几号 —— 「第 N 行」的**唯一口径**：只数写了 part 的行。
+ *
+ * 没写 part 的行是 null（铺垫行、空行、只有 `}`/`)`/`;`/`,` 的收尾行），
+ * 它们在画面上不占号。旁白只会说到有号的行，于是「听到第几行」和
+ * 「看到高亮那行的号」永远是同一个数。
+ *
+ * 为什么逐行标号、而不是「旁白号 = 物理行号 − 铺垫行数」：铺垫行被规则钉在
+ * 最前面（见下面 checkCodeNarration 的栏杆），但**收尾行可以出现在第一个 part
+ * 之前**（空行、孤零零一个 `}`），偏移量不是常数。
+ *
+ * 两个消费者：addLineNumbers 拿它补「第 N 行，」，build-storyboard 拿它写进
+ * storyboard 给画面上的 gutter 用。两边读同一份 —— 这个项目在「同一个口径散成
+ * 几份副本」上栽过（见 authoring.ts 开头那张脸的清单），所以宁可多一个函数，
+ * 也不要第二份 `nth += 1`。
+ */
+export function narratedOrdinals<T extends { part?: number }>(lines: T[]): (number | null)[] {
+  let nth = 0
+  return lines.map((l) => {
+    if (typeof l.part !== 'number') return null
+    nth += 1
+    return nth
+  })
+}
+
 function checkCodeNarration(
   tag: string,
   lines: Array<{ code?: string; part?: number }>,
@@ -376,13 +401,14 @@ function checkCodeNarration(
 
   // ---- 「第 N 行」自洽 ----
   // 讲稿说「第 N 行」，那一段就必须挂在**写了 part 的第 N 行**上（铺垫行不数进去）。
+  // 号从 narratedOrdinals 来 —— 就是 addLineNumbers 和画面上 gutter 读的那一份。
+  const ordinals = narratedOrdinals(lines)
   const ordinalOfPart = new Map<number, number>()
-  let nth = 0
-  for (const l of lines) {
-    if (!hasPart(l)) continue
-    nth += 1
+  lines.forEach((l, j) => {
+    const nth = ordinals[j]
+    if (!hasPart(l) || nth == null) return
     if (!ordinalOfPart.has(l.part!)) ordinalOfPart.set(l.part!, nth)
-  }
+  })
 
   for (const [part, ordinal] of ordinalOfPart) {
     const text = episode.parts[part]?.text ?? ''

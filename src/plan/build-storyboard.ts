@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { validateEpisode, type Episode } from './episode'
+import { narratedOrdinals, validateEpisode, type Episode } from './episode'
 import { buildCues, norm } from './subtitle'
 import { toSrt, toVtt } from './subtitle-export'
 // ★ 打字速度从 sceneState.ts import，不再在这里抄一份。
@@ -94,15 +94,19 @@ const scenes = episode.scenes.map((s, si) => {
     }
   } else if (s.template === 'CodeTyping') {
     const p = s.props as { fileName: string; lines: Array<{ code: string; part?: number }> }
+    // 画面 gutter 上要显示的那个号。`part` 只有在这一层还在 —— 下面 return 出去
+    // 的行只有 { code, atMs }，组件就再也判断不出「这行有没有讲解」了。
+    // 号还是 narratedOrdinals 那一份，所以和旁白念的「第 N 行」是同一个数。
+    const steps = narratedOrdinals(p.lines)
     let prevEnd = -1
-    const lines = p.lines.map((l) => {
+    const lines = p.lines.map((l, i) => {
       // 有 part 的行：卡在那段讲解开口时出现。
       // 没有 part 的行（收尾大括号）：等上一行打完再出现。
       const fromPart = typeof l.part === 'number' ? partTimes[l.part]! - startMs : null
       const minAt = prevEnd < 0 ? 0 : prevEnd + LINE_GAP_MS
       const atMs = fromPart === null ? minAt : Math.max(fromPart, minAt)
       prevEnd = atMs + l.code.length * CHAR_MS
-      return { code: l.code, atMs }
+      return { code: l.code, atMs, step: steps[i] ?? null }
     })
     props = { fileName: p.fileName, lines }
   } else if (s.template === 'Terminal') {
