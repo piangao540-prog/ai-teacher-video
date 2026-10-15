@@ -1,0 +1,174 @@
+.plan {
+    width: 960px;
+    margin: 0 auto;
+    padding: 24px 0 8px;
+    font-family: system-ui, sans-serif;
+    color: #ddd;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ask {
+    display: flex;
+    gap: 8px;
+}
+
+.ask input {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 15px;
+    color: #eee;
+    background: #1c1c1c;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    outline: none;
+}
+
+.ask input:focus {
+    border-color: #5a7;
+}
+
+.ask button {
+    padding: 10px 20px;
+    font-size: 15px;
+    color: #eaeaea;
+    background: #2c5c46;
+    border: 1px solid #3d7a5e;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.ask button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.ghost {
+    background: transparent !important;
+    border-color: #444 !important;
+    color: #aaa !important;
+    font-size: 13px !important;
+    padding: 4px 10px !important;
+}
+
+.note {
+    margin: 0;
+    font-size: 13px;
+    color: #888;
+}
+
+.logs {
+    margin: 0;
+    padding: 12px;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.box {
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+    background: #161616;
+    font-size: 14px;
+}
+
+.box pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.box .head {
+    margin-bottom: 6px;
+}
+
+.fail {
+    border-color: #6b2b2b;
+}
+
+.ok {
+    border-color: #2f6b46;
+}
+
+.summary {
+    color: #cfe9d8;
+}
+
+.stale,
+.ready {
+    margin: 10px 0 0;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.stale {
+    border-left: 3px solid #b8860b;
+    background: #241f10;
+    color: #e6cf95;
+}
+
+.ready {
+    border-left: 3px solid #2f6b46;
+    background: #10201a;
+    color: #b9e0cb;
+}
+
+.remind {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: #999;
+    line-height: 1.7;
+}
+
+.stale .edge {
+    display: block;
+    margin-top: 2px;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 12px;
+    color: #c9ab63;
+}
+
+.stale b,
+.remind b,
+.ready b {
+    color: #eee;
+}
+
+.note code {
+    padding: 1px 5px;
+    background: #000;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.box details {
+    margin-top: 10px;
+}
+
+.box summary {
+    cursor: pointer;
+    font-size: 13px;
+    color: #bbb;
+}
+
+.review {
+    margin: 8px 0 0;
+    max-height: 420px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #ccc;
+}
