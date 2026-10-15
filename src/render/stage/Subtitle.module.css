@@ -1,0 +1,76 @@
+.layer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 64px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 三个方案共用的文字部分：字体、字号、行距、字重、位置、颜色 */
+.cue {
+    max-width: 1680px;
+    box-sizing: border-box;
+    font-family: system-ui, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    font-size: 52px;
+    line-height: 1.4;
+    font-weight: 500;
+    text-align: center;
+    letter-spacing: 1px;
+    /* 字幕颜色。想换色改这一处就够 —— 下面各方案不再单独覆盖 color */
+    color: #ff69b4;
+}
+
+.line {
+    white-space: pre-wrap;
+}
+
+/* ---------- box：半透明圆角底板（原来那一版） ---------- */
+.v-box .cue {
+    padding: 18px 40px;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.78);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- pill：深色胶囊 + 细描边 ----------
+   和 box 是同一个思路，但更扎实：底板接近全黑（任何底色上都稳），
+   圆角做成胶囊（= 行高的一半），再加一圈极淡白边勾出轮廓。
+   代价是比 box「重」一点，好处是不管底下是白幻灯片还是深色代码都读得清。 */
+.v-pill .cue {
+    padding: 22px 52px;
+    border-radius: 100px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------- glass：毛玻璃半透明底板 ----------
+   border 让浅色背景上也有个轮廓，否则玻璃会糊掉。 */
+.v-glass .cue {
+    padding: 20px 44px;
+    border-radius: 22px;
+    background: rgba(16, 18, 24, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- bar：贴底通栏渐变黑条 ----------
+   铺满整个宽度，字幕从画面最底边往上排（这一版要覆盖 .layer 的留白）。 */
+.v-bar {
+    padding-bottom: 0;
+}
+
+.v-bar .cue {
+    width: 100%;
+    max-width: none;
+    padding: 34px 90px 42px;
+    border-radius: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.72) 62%, rgba(0, 0, 0, 0) 100%);
+    color: #ff69b4;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
