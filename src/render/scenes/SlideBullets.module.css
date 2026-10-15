@@ -1,0 +1,41 @@
+.slide {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 110px 140px;
+    background: #0d1117;
+    color: #e6edf3;
+}
+
+.title {
+    font-size: 88px;
+    line-height: 1.2;
+
+    margin: 0 0 36px;
+}
+
+.title::after {
+    content: '';
+    display: block;
+    width: 128px;
+    height: 6px;
+    margin-top: 30px;
+    border-radius: 3px;
+    background: #3fb950;
+}
+
+.list {
+    margin: 0;
+    padding-left: 56px;
+}
+
+.item {
+    font-size: 54px;
+    line-height: 1.8;
+    color: #c9d1d9;
+}
+
+.item::marker {
+    color: #3fb950;
+}
