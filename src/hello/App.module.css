@@ -1,0 +1,16 @@
+.list{
+    background: #0d1117;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.item{
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 18px;
+    line-height: 1.8;
+    color: #c9d1d9;
+}
+
+.active{
+    background: skyblue;
+}

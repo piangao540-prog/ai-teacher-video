@@ -3,13 +3,20 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    // JSX 语法要显式打开。react-jsx = 新版转换：不用 import React，
+    // 编译器自动从 react/jsx-runtime 取。
+    "jsx": "react-jsx",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "types": ["node"]
+    // vite/client 提供 *.module.css、图片、import.meta.env 等的类型声明。
+    // 原来只有 node —— 不加这个，import styles from './X.module.css' 会报
+    // 「找不到模块 '*.module.css'」。
+    "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.ts"]
+  // ★ 原来只有 .ts —— 新写的 .tsx 不加进来，typecheck 会当它不存在。
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

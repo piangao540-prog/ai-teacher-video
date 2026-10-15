@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import react from '@vitejs/plugin-react'
 import { planApi } from './src/server/plan-api'
 import { sendFile } from './src/server/send-file'
 
@@ -62,5 +63,7 @@ function planApiPlugin(): Plugin {
 export default defineConfig({
   // 用 file:// 直接打开构建产物时必须是相对路径
   base: './',
-  plugins: [vue(), stageDataPlugin(), planApiPlugin()],
+  // vue() 和 react() 可以并存：各管各的文件。.vue 走 vue()，.tsx 走 react()。
+  // 渐进迁移期间两个都要在，全部换成 React 之后再摘掉 vue()。
+  plugins: [vue(), react(), stageDataPlugin(), planApiPlugin()],
 })

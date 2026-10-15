@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>React 试验田</title>
+    <style>
+      body { margin: 0; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <!--
+      独立入口。跟 index.html 是两回事：
+        /            → index.html → src/render/stage/main.ts（播放器 + 面板）
+        /hello.html  → hello.html  → src/hello/main.tsx（React 试验田）
+
+      Vite 的多页面就是这么工作的：根目录下的任意 .html 都能直接访问。
+      这样做的好处是**完全不碰现有入口**，播放器那一支的像素一个字节都不会变 ——
+      出片对拍不会因为学 React 而失效。
+    -->
+    <div id="root"></div>
+    <script type="module" src="/src/hello/main.tsx"></script>
+  </body>
+</html>
