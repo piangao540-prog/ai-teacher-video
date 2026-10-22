@@ -1,0 +1,238 @@
+.page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 24px 0;
+    font-family: system-ui, sans-serif;
+    color: #eee;
+}
+
+.page audio {
+    display: none;
+}
+
+.viewport {
+    width: 960px;
+    height: 540px;
+    overflow: hidden;
+    flex: 0 0 auto;
+    box-shadow: 0 8px 40px #000;
+}
+
+.frame {
+    /* 字幕层用 absolute 定位盖在场景上，所以这里是它的定位参照物 */
+    position: relative;
+    width: 1920px;
+    height: 1080px;
+    transform: scale(0.5);
+    transform-origin: top left;
+    /* storyboard 还没到、或者场景组件还没挂上时露出来的就是这个色。
+     原来是白的 —— 页面刚打开那一下是一屏纯白，像坏了。
+     改成和所有场景同一个底：那一瞬看着像「从黑场淡入」，是设计的一部分。 */
+    background: #0d1117;
+}
+
+/* 工具栏 + 它下面那行调试信息。宽度和上面 960px 的画框对齐。 */
+.controls {
+    width: 960px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.bar {
+    box-sizing: border-box;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px;
+    background: #191919;
+    border: 1px solid #2c2c2c;
+    border-radius: 12px;
+}
+
+/* 圆形播放按钮：一个开关顶原来两个按钮 */
+.play {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    font-family: system-ui, 'Segoe UI Symbol', sans-serif;
+    font-size: 15px;
+    line-height: 1;
+    color: #dfe6e2;
+    background: #2c5c46;
+    border: 1px solid #3d7a5e;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.play:hover {
+    background: #356c53;
+}
+
+.play:active {
+    transform: scale(0.94);
+}
+
+/* 进度条 ── `appearance: none` 是这个文件里最要紧的一行。
+   原生 range 是**替换元素**：浏览器拿自己的渲染器画它，普通盒模型那套
+   基本管不着。不写这行，下面 ::-webkit-slider-thumb 那些规则一条都不生效。 */
+.scrub {
+    flex: 1;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #333;
+    outline: none;
+    cursor: pointer;
+}
+
+.scrub::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #6cc59a;
+    border: none;
+}
+
+.scrub::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #6cc59a;
+    border: none;
+}
+
+/* tabular-nums：数字等宽，拖进度条时 `00:01.962` 不会左右抖 */
+.t {
+    flex: 0 0 auto;
+    min-width: 74px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: #9aa4a0;
+    text-align: right;
+}
+
+/* 一根竖线把「放音」那半和「显示」那半分开 ——
+   分组靠间距和分隔，不靠平均的 gap */
+.sep {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 20px;
+    background: #303030;
+}
+
+.toggle {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #9aa4a0;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* 藏起来、但留在 DOM 里（位置绝对化 + 零尺寸），键盘和读屏照旧能用 */
+.toggle input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+}
+
+.toggle .box {
+    position: relative;
+    width: 15px;
+    height: 15px;
+    border: 1px solid #3f3f3f;
+    border-radius: 4px;
+    background: #121212;
+}
+
+/* `input:checked + .box` —— 相邻兄弟选择器。checkbox 和 .box 在 DOM 里挨着，
+   所以选中时 .box 自己就变样，不用在 Vue 里再存一份重复的状态。 */
+.toggle input:checked+.box {
+    background: #2c5c46;
+    border-color: #3d7a5e;
+}
+
+/* 对勾：一个小矩形只留右边和下边的边框，转 45° 就是了 */
+.toggle input:checked+.box::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid #cfe9d8;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.toggle input:focus-visible+.box {
+    outline: 2px solid #3d7a5e;
+    outline-offset: 2px;
+}
+
+.variant {
+    flex: 0 0 auto;
+    appearance: none;
+    padding: 4px 22px 4px 8px;
+    font-size: 12px;
+    color: #9aa4a0;
+    background: #121212;
+    border: 1px solid #333;
+    border-radius: 6px;
+    cursor: pointer;
+    /* appearance: none 把原生那支箭头也一起干掉了，得自己画：
+     两个 45° 渐变各露出一半，拼成一个小三角 */
+    background-image: linear-gradient(45deg, transparent 50%, #7a7a7a 50%),
+        linear-gradient(135deg, #7a7a7a 50%, transparent 50%);
+    background-position: calc(100% - 11px) center, calc(100% - 7px) center;
+    background-size: 4px 4px, 4px 4px;
+    background-repeat: no-repeat;
+}
+
+.scene {
+    margin: 0;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: #555;
+}
+
+/* 版本标签。琥珀色照 Plan.vue 那份（scoped 样式跨不了组件，颜色值只能照抄）。
+   `cursor: help` 是给那个 title 提示的一个暗示 —— 不然没人知道能停上去看。 */
+.stale {
+    margin: 0;
+    font-size: 12px;
+    color: #b8860b;
+    cursor: help;
+}
+
+/* ↓↓↓ 渲染模式：1:1 原尺寸，没 UI，没阴影 ↓↓↓ */
+.page.render {
+    display: block;
+    padding: 0;
+    gap: 0;
+    min-height: 0;
+    background: #fff;
+}
+
+.page.render .viewport {
+    width: 1920px;
+    height: 1080px;
+    box-shadow: none;
+}
+
+.page.render .frame {
+    transform: none;
+}
