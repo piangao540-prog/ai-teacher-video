@@ -1,91 +1,97 @@
 {
   "parts": [
     {
-      "text": "今天我们用几分钟，把 React 最核心的几件事讲清楚。"
+      "text": "今天我们来聊聊 MCP，很多同学第一次听到这个词，完全不知道它是干什么的。"
     },
     {
-      "text": "第一，在 React 里，组件本质上就是一个函数。"
+      "text": "第一，MCP 到底是个什么东西。"
     },
     {
-      "text": "第二，用 useState 这个 Hook 来管理会变化的数据。"
+      "text": "第二，它解决了什么实际问题。"
     },
     {
-      "text": "第三，用 JSX 这种语法在函数里描述界面长什么样。"
+      "text": "第三，我们写一个最小可用的例子。"
     },
     {
-      "text": "第四，状态一变，React 会自动重新渲染界面，你不用手动操作 DOM。"
+      "text": "最后，说说新手最容易搞错的地方。"
     },
     {
-      "text": "先看一个最小能跑通的计数器例子。"
+      "text": "先说说它解决什么问题。你可以把 MCP 想象成 AI 应用的 USB 接口。"
     },
     {
-      "text": "第一行，先从 React 里把 useState 这个 Hook 导入进来。"
+      "text": "没有 MCP 的时候，每个 AI 应用想用工具，都得单独写一套对接代码。"
     },
     {
-      "text": "第二行，然后定义一个叫 Counter 的函数，它就是一个组件。"
+      "text": "有了 MCP，工具按统一协议暴露出来，谁都能接，写一次就够了。"
     },
     {
-      "text": "第三行，用 useState 声明状态，初始值是 0，它返回一个值和修改它的函数。"
+      "text": "注意，MCP 是一个协议，不是框架，也不是某个具体产品。"
     },
     {
-      "text": "第四行，接下来 return 出这个组件要显示的界面。"
+      "text": "具体来说，MCP 定义了三样东西，理解这三样就够用了。"
     },
     {
-      "text": "继续把这个组件的界面部分写完。"
+      "text": "第一是 Tools，就是模型可以主动调用的函数，比如查天气、查数据库。"
     },
     {
-      "text": "第一行，按钮的点击事件里调用 setCount，把 count 加一。"
+      "text": "第二是 Resources，是模型可以读取的数据，比如文件内容、配置信息。"
     },
     {
-      "text": "第二行，花括号里放 count，界面上就会显示当前数字。"
+      "text": "第三是 Prompts，是预置的提示词模板，方便用户快速发起任务。"
     },
     {
-      "text": "第三行，按钮标签闭合，整个界面结构就写完了。"
+      "text": "日常开发里用得最多的就是 Tools，我们先把它搞清楚。"
     },
     {
-      "text": "这个例子虽然短，但藏着两个新手最容易踩的坑。"
+      "text": "我们来看一个最小的 MCP 服务器例子，用官方 SDK 写。"
     },
     {
-      "text": "第一个坑，千万不要直接给 count 赋值，必须用 setCount 才能触发更新。"
+      "text": "第一行，先引入服务器和标准输入输出传输层，这是最常用的组合。"
     },
     {
-      "text": "第二个坑，setCount 之后不能马上拿到新值，它是异步更新的。"
+      "text": "第二行，标准输入输出传输层单独从另一个路径引入。"
     },
     {
-      "text": "我们来看错误写法和正确写法的对比。"
+      "text": "第三行，创建一个服务器实例，给它一个名字。"
     },
     {
-      "text": "第一行，这样直接赋值，React 根本不知道数据变了，界面不会更新。"
+      "text": "第四行，注册一个工具叫 add，接收两个数字参数。"
     },
     {
-      "text": "第二行，必须调用 setCount，React 才会重新渲染这个组件。"
+      "text": "接着把工具的逻辑和启动代码补完。"
     },
     {
-      "text": "第三行，注意，setCount 之后马上打印 count，拿到的还是旧值。"
+      "text": "第一行，工具的逻辑很简单，把两个数加起来。"
     },
     {
-      "text": "第四行，如果要基于上一次的值更新，推荐用函数式写法，把上一个值传进来。"
+      "text": "第二行，结果放在 content 数组里返回，类型是文本。"
     },
     {
-      "text": "理解了这两个坑，我们再回头看一下组件和 JSX 的关系。"
+      "text": "第三行，最后用标准输入输出作为传输层，把服务器接上就可以启动了。"
     },
     {
-      "text": "组件名首字母必须大写，小写会被当成普通 HTML 标签。"
+      "text": "写完了，我们把它跑起来看看。"
     },
     {
-      "text": "JSX 里用花括号插入变量或表达式，外面是普通标签。"
+      "text": "直接运行这个文件。"
     },
     {
-      "text": "组件可以像标签一样复用和嵌套，这就是 React 组合的方式。"
+      "text": "我们发一条 tools list 请求，看看服务器能不能正确响应。"
     },
     {
-      "text": "最后我们把这个组件跑起来，看看效果。"
+      "text": "最后说说最容易搞错的地方，这几个坑我几乎每次都能看到有人踩。"
     },
     {
-      "text": "在项目目录下启动开发服务器。"
+      "text": "第一，MCP 不是模型，它不会自己思考，只是把工具暴露给模型用。"
     },
     {
-      "text": "打开浏览器点一下按钮，数字就从 0 变成 1 了。"
+      "text": "第二，工具的参数一定要用 JSON Schema 描述清楚，否则模型不知道传什么。"
+    },
+    {
+      "text": "第三，用 stdio 传输的时候，千万不要往标准输出打印日志，会污染协议。"
+    },
+    {
+      "text": "第四，工具最好设计成幂等的，因为模型可能重复调用同一个工具。"
     }
   ],
   "scenes": [
@@ -93,164 +99,177 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "React 快速入门",
+        "title": "认识 MCP",
         "bullets": [
           {
-            "text": "组件就是函数",
+            "text": "MCP 是什么",
             "part": 1
           },
           {
-            "text": "useState 管数据",
+            "text": "它解决什么问题",
             "part": 2
           },
           {
-            "text": "JSX 描述界面",
+            "text": "最小例子跑起来",
             "part": 3
           },
           {
-            "text": "状态变了自动重渲染",
+            "text": "最容易踩的坑",
             "part": 4
           }
         ]
       }
     },
     {
-      "template": "CodeTyping",
+      "template": "SlideBullets",
       "startPart": 5,
       "props": {
-        "fileName": "Counter.jsx",
-        "lines": [
+        "title": "MCP 解决什么问题",
+        "bullets": [
           {
-            "code": "import { useState } from 'react'",
+            "text": "没有 MCP：每个应用单独对接工具",
             "part": 6
           },
           {
-            "code": "function Counter() {",
+            "text": "有 MCP：一次对接处处可用",
             "part": 7
           },
           {
-            "code": "  const [count, setCount] = useState(0)",
+            "text": "MCP 是协议，不是框架",
             "part": 8
-          },
-          {
-            "code": "  return (",
-            "part": 9
           }
         ]
       }
     },
     {
-      "template": "CodeTyping",
-      "startPart": 10,
+      "template": "SlideBullets",
+      "startPart": 9,
       "props": {
-        "fileName": "Counter.jsx",
-        "lines": [
+        "title": "MCP 的三个核心概念",
+        "bullets": [
           {
-            "code": "    <button onClick={() => setCount(count + 1)}>",
+            "text": "Tools：模型可以主动调用的函数",
+            "part": 10
+          },
+          {
+            "text": "Resources：模型可以读取的数据",
             "part": 11
           },
           {
-            "code": "      {count}",
+            "text": "Prompts：预置的提示词模板",
             "part": 12
           },
           {
-            "code": "    </button>",
+            "text": "日常用得最多的是 Tools",
             "part": 13
           }
         ]
       }
     },
     {
-      "template": "SlideBullets",
+      "template": "CodeTyping",
       "startPart": 14,
       "props": {
-        "title": "两个最常见的坑",
-        "bullets": [
+        "fileName": "server.js",
+        "lines": [
           {
-            "text": "不要直接改 state",
+            "code": "import { McpServer } from",
             "part": 15
           },
           {
-            "text": "setState 是异步的",
+            "code": "  '@modelcontextprotocol/sdk/server/mcp.js'"
+          },
+          {
+            "code": "import { StdioServerTransport } from",
             "part": 16
+          },
+          {
+            "code": "  '@modelcontextprotocol/sdk/server/stdio.js'"
+          },
+          {
+            "code": "const server = new McpServer({ name: 'demo' })",
+            "part": 17
+          },
+          {
+            "code": "server.tool('add', { a: Number, b: Number },",
+            "part": 18
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 17,
+      "startPart": 19,
       "props": {
-        "fileName": "Mistake.jsx",
+        "fileName": "server.js",
         "lines": [
           {
-            "code": "count = count + 1",
-            "part": 18
-          },
-          {
-            "code": "setCount(count + 1)",
-            "part": 19
-          },
-          {
-            "code": "console.log(count)",
+            "code": "  async ({ a, b }) => ({",
             "part": 20
           },
           {
-            "code": "setCount(c => c + 1)",
+            "code": "    content: [{ type: 'text', text: String(a + b) }]",
             "part": 21
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 22,
-      "props": {
-        "title": "组件与 JSX",
-        "bullets": [
-          {
-            "text": "组件名首字母大写",
-            "part": 23
           },
           {
-            "text": "JSX 里用花括号插值",
-            "part": 24
+            "code": "  }))"
           },
           {
-            "text": "组件可以复用和嵌套",
-            "part": 25
+            "code": "await server.connect(new StdioServerTransport())",
+            "part": 22
           }
         ]
       }
     },
     {
       "template": "Terminal",
-      "startPart": 26,
+      "startPart": 23,
       "props": {
-        "title": "启动项目",
+        "title": "启动 MCP 服务器",
         "prompt": "$",
         "lines": [
           {
-            "text": "npm run dev",
+            "text": "node server.js",
             "kind": "command",
+            "part": 24
+          },
+          {
+            "text": "MCP server running on stdio",
+            "kind": "output"
+          },
+          {
+            "text": "echo '{\"method\":\"tools/list\"}' | node server.js",
+            "kind": "command",
+            "part": 25
+          },
+          {
+            "text": "{\"tools\":[{\"name\":\"add\",...}]}",
+            "kind": "output"
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 26,
+      "props": {
+        "title": "新手最容易踩的坑",
+        "bullets": [
+          {
+            "text": "MCP 不是模型，不会自己思考",
             "part": 27
           },
           {
-            "text": "VITE v5.0.0  ready in 300 ms",
-            "kind": "output"
-          },
-          {
-            "text": "➜  Local: http://localhost:5173/",
-            "kind": "output"
-          },
-          {
-            "text": "点击按钮，数字从 0 变成 1",
-            "kind": "command",
+            "text": "参数要用 JSON Schema 描述",
             "part": 28
           },
           {
-            "text": "界面自动更新，不用手动操作 DOM",
-            "kind": "output"
+            "text": "stdio 模式别往 stdout 打日志",
+            "part": 29
+          },
+          {
+            "text": "工具要幂等，模型会重复调用",
+            "part": 30
           }
         ]
       }

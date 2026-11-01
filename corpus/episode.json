@@ -1,112 +1,94 @@
 {
   "parts": [
     {
-      "text": "前端做 Agent，不用从零训练模型。抓住两个点就够了。"
+      "text": "很多人第一次听到 MCP，以为是又一个新框架。其实它解决的问题特别朴素。"
     },
     {
-      "text": "第一，调用大模型接口，并声明工具，让模型能决定做什么。"
+      "text": "第一，模型本身是碰不到外部世界的，它只会根据上下文生成文字。"
     },
     {
-      "text": "第二，前端自己执行工具，再把结果送回模型，拿到最终回答。"
+      "text": "第二，每接一个工具，就要为它单独写一套对接代码，重复又容易出错。"
     },
     {
-      "text": "先说第一个点：接口调用到底解决了什么问题。"
+      "text": "第三，MCP 把这套对接方式标准化，写一次就能被所有客户端复用。"
     },
     {
-      "text": "模型输出的不是字符串，而是能直接驱动界面的结构化数据。"
+      "text": "那它具体是怎么把这件事标准化的呢？看这条链路。"
     },
     {
-      "text": "把可用函数声明给模型，它就能决定什么时候调用哪个。"
+      "text": "第一步，客户端把模型的意图变成一次具体的请求。"
     },
     {
-      "text": "看最小的一步：怎么声明一个工具。"
+      "text": "第二步，请求发给 MCP 服务器，它负责真正干活。"
     },
     {
-      "text": "第一行，初始化客户端，密钥从环境变量里读，别写死在代码里。"
+      "text": "第三步，服务器去调用文件、数据库这些外部工具。"
     },
     {
-      "text": "第二行，接下来声明工具列表，告诉模型有哪些函数可以用。"
+      "text": "最后，结果按统一格式回到模型，模型再接着往下说。"
     },
     {
-      "text": "第三行，每个工具的类型都是 function，这是接口约定的写法。"
+      "text": "在这条链路里，服务器要对外声明两样东西，这是理解 MCP 的关键。"
     },
     {
-      "text": "第四行，工具名要写清楚，模型靠它生成调用参数。"
+      "text": "一是工具，告诉客户端我能做什么，每个参数是什么类型。"
     },
     {
-      "text": "第五行，工具数组到这里就准备好了，可以随请求一起发出去。"
+      "text": "二是资源，告诉客户端我能读哪些数据，比如文件或者表。"
     },
     {
-      "text": "把消息和工具一起发给模型，看它怎么回。"
+      "text": "只有声明清楚了，客户端才知道什么时候该调、怎么调。"
     },
     {
-      "text": "第一行，发起对话请求，把模型名、消息和工具都传进去。"
+      "text": "光说概念太虚，我们先写服务器最核心的那部分。"
     },
     {
-      "text": "第二行，模型选一个小一点的就行，演示够用而且便宜。"
+      "text": "第一行，先从官方 SDK 里把服务器这个类引进来。"
     },
     {
-      "text": "第三行，消息列表带上下文，工具列表带能力，两者缺一不可。"
+      "text": "第二行，然后创建一个服务器实例，给它一个名字和版本号。"
     },
     {
-      "text": "第四行，请求是异步的，要等它返回完整的响应对象。"
+      "text": "第三行，接着注册一个工具，名字叫 add，接收两个数字参数。"
     },
     {
-      "text": "第五行，如果模型决定调用工具，这里就能拿到工具名和参数。"
+      "text": "第四行，参数的类型一定要写清楚，客户端会按这个做校验。"
     },
     {
-      "text": "拿到工具调用之后，前端要自己执行它。"
+      "text": "第五行，工具的实现就是把两个数加起来，结果包成文本内容返回。"
     },
     {
-      "text": "第一行，模型给的是 JSON 字符串，先解析成对象才能用。"
+      "text": "服务器写好了，还差最后一步，把它接到标准输入输出上。"
     },
     {
-      "text": "第二行，真正干活的是我们自己的函数，模型只负责决策。"
+      "text": "第一行，先引进标准输入输出的传输层，这是客户端和服务器对话的通道。"
     },
     {
-      "text": "执行完还要把结果送回模型，这一步最容易漏。"
+      "text": "第二行，把服务器连上这个通道，它就能被客户端发现了。"
     },
     {
-      "text": "第一行，把执行结果按 tool 角色塞回消息列表，让模型看到。"
+      "text": "跑起来看看，客户端是怎么发现并调用它的。"
     },
     {
-      "text": "第二行，角色是 tool，还要带上调用 id 和刚才那次调用对上。"
+      "text": "直接运行这个文件，服务器就启动了。"
     },
     {
-      "text": "第三行，内容统一转成字符串，模型只认文本格式的结果。"
+      "text": "客户端连上之后，第一件事是列出可用的工具。"
     },
     {
-      "text": "第四行，这条消息推完，上下文里就多了工具执行的真实结果。"
+      "text": "然后带上参数调用一次，看看它返回什么。"
     },
     {
-      "text": "最后再请求一次，模型就会用结果组织最终回答。"
+      "text": "代码跑通之后，有两个坑几乎每个人都会踩。"
     },
     {
-      "text": "第一行，第二次请求，消息列表里已经包含工具结果。"
+      "text": "第一，工具的描述写得太模糊，模型就会选错工具，或者干脆不选。"
     },
     {
-      "text": "第二行，模型保持不变，保证前后风格一致。"
+      "text": "第二，参数的类型写错了，调用会在校验那一步直接失败。"
     },
     {
-      "text": "第三行，只传消息就够了，这次不需要再带工具列表。"
-    },
-    {
-      "text": "第四行，等响应回来，里面就是给用户的最终自然语言回答。"
-    },
-    {
-      "text": "最容易踩坑的地方，集中在状态和流式这两块。"
-    },
-    {
-      "text": "流式响应是一段一段来的，不能等全收完再更新界面。"
-    },
-    {
-      "text": "工具可能报错或超时，必须把错误也作为结果回传给模型。"
-    },
-    {
-      "text": "最后跑起来看看一次完整的工具调用长什么样。"
-    },
-    {
-      "text": "启动开发服务器。"
+      "text": "所以描述和类型这两样，都要像写接口文档一样认真对待。"
     }
   ],
   "scenes": [
@@ -114,208 +96,181 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "前端学 Agent 的两个点",
+        "title": "MCP 解决什么问题",
         "bullets": [
           {
-            "text": "调用接口并声明工具",
+            "text": "模型本身碰不到外部世界",
             "part": 1
           },
           {
-            "text": "执行工具并回传结果",
+            "text": "每个工具都要单独写对接",
             "part": 2
+          },
+          {
+            "text": "MCP 把对接标准化",
+            "part": 3
           }
         ]
       }
     },
     {
-      "template": "SlideBullets",
-      "startPart": 3,
+      "template": "Flow",
+      "startPart": 4,
       "props": {
-        "title": "接口调用解决什么",
-        "bullets": [
+        "title": "MCP 的调用链路",
+        "steps": [
           {
-            "text": "把用户意图变成结构化数据",
-            "part": 4
-          },
-          {
-            "text": "工具声明让模型会做事",
+            "text": "客户端发起请求",
             "part": 5
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 6,
-      "props": {
-        "fileName": "agent.ts",
-        "lines": [
-          {
-            "code": "import OpenAI from 'openai'"
           },
           {
-            "code": "const client = new OpenAI({ apiKey: '...' })",
+            "text": "MCP 服务器",
+            "part": 6
+          },
+          {
+            "text": "调用外部工具",
             "part": 7
           },
           {
-            "code": "const tools = [{",
+            "text": "结果回到模型",
             "part": 8
-          },
-          {
-            "code": "  type: 'function',",
-            "part": 9
-          },
-          {
-            "code": "  function: { name: 'getWeather' }",
-            "part": 10
-          },
-          {
-            "code": "}]",
-            "part": 11
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 12,
-      "props": {
-        "fileName": "call.ts",
-        "lines": [
-          {
-            "code": "const res = await client.chat.completions.create({",
-            "part": 13
-          },
-          {
-            "code": "  model: 'gpt-4o-mini',",
-            "part": 14
-          },
-          {
-            "code": "  messages, tools",
-            "part": 15
-          },
-          {
-            "code": "})",
-            "part": 16
-          },
-          {
-            "code": "const call = res.choices[0].message.tool_calls?.[0]",
-            "part": 17
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 18,
-      "props": {
-        "fileName": "run-tool.ts",
-        "lines": [
-          {
-            "code": "const args = JSON.parse(call.function.arguments)",
-            "part": 19
-          },
-          {
-            "code": "const result = await getWeather(args.city)",
-            "part": 20
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 21,
-      "props": {
-        "fileName": "push-result.ts",
-        "lines": [
-          {
-            "code": "messages.push({",
-            "part": 22
-          },
-          {
-            "code": "  role: 'tool', tool_call_id: call.id,",
-            "part": 23
-          },
-          {
-            "code": "  content: JSON.stringify(result)",
-            "part": 24
-          },
-          {
-            "code": "})",
-            "part": 25
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 26,
-      "props": {
-        "fileName": "final.ts",
-        "lines": [
-          {
-            "code": "const final = await client.chat.completions.create({",
-            "part": 27
-          },
-          {
-            "code": "  model: 'gpt-4o-mini',",
-            "part": 28
-          },
-          {
-            "code": "  messages",
-            "part": 29
-          },
-          {
-            "code": "})",
-            "part": 30
           }
         ]
       }
     },
     {
       "template": "SlideBullets",
-      "startPart": 31,
+      "startPart": 9,
       "props": {
-        "title": "两个高频坑",
+        "title": "服务器对外声明什么",
         "bullets": [
           {
-            "text": "流式输出要边收边渲染",
-            "part": 32
+            "text": "工具：能做什么，参数是什么",
+            "part": 10
           },
           {
-            "text": "工具调用要处理失败",
-            "part": 33
+            "text": "资源：能读哪些数据",
+            "part": 11
+          },
+          {
+            "text": "声明清楚了，客户端才敢调",
+            "part": 12
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 13,
+      "props": {
+        "fileName": "server.js",
+        "lines": [
+          {
+            "code": "import { McpServer } from",
+            "part": 14
+          },
+          {
+            "code": "  '@modelcontextprotocol/sdk/server/mcp.js'"
+          },
+          {
+            "code": "const server = new McpServer({",
+            "part": 15
+          },
+          {
+            "code": "  name: 'demo', version: '1.0.0' })"
+          },
+          {
+            "code": "server.tool('add', {",
+            "part": 16
+          },
+          {
+            "code": "  a: { type: 'number' }, b: { type: 'number' } },",
+            "part": 17
+          },
+          {
+            "code": "  async ({ a, b }) => ({ content: [",
+            "part": 18
+          },
+          {
+            "code": "    { type: 'text', text: String(a + b) }] }))"
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 19,
+      "props": {
+        "fileName": "server.js",
+        "lines": [
+          {
+            "code": "import { StdioServerTransport } from",
+            "part": 20
+          },
+          {
+            "code": "  '@modelcontextprotocol/sdk/server/stdio.js'"
+          },
+          {
+            "code": "await server.connect(new StdioServerTransport())",
+            "part": 21
           }
         ]
       }
     },
     {
       "template": "Terminal",
-      "startPart": 34,
+      "startPart": 22,
       "props": {
-        "title": "运行 Agent",
+        "title": "启动 MCP 服务器",
         "prompt": "$",
         "lines": [
           {
-            "text": "pnpm dev",
+            "text": "node server.js",
             "kind": "command",
-            "part": 35
+            "part": 23
           },
           {
-            "text": "➜  Local: http://localhost:5173/",
+            "text": "[mcp] server demo 1.0.0 started",
             "kind": "output"
           },
           {
-            "text": "[agent] 用户问：北京天气怎么样",
+            "text": "list tools",
+            "kind": "command",
+            "part": 24
+          },
+          {
+            "text": "add(a: number, b: number)",
             "kind": "output"
           },
           {
-            "text": "[tool] getWeather({ city: '北京' })",
-            "kind": "output"
+            "text": "call add { a: 2, b: 3 }",
+            "kind": "command",
+            "part": 25
           },
           {
-            "text": "[agent] 北京今天晴，25 度",
+            "text": "result: 5",
             "kind": "output"
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 26,
+      "props": {
+        "title": "两个最容易搞错的地方",
+        "bullets": [
+          {
+            "text": "工具描述写太糊，模型选错工具",
+            "part": 27
+          },
+          {
+            "text": "参数类型写错，调用直接失败",
+            "part": 28
+          },
+          {
+            "text": "描述和类型都要写清楚",
+            "part": 29
           }
         ]
       }
