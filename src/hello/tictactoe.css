@@ -1,0 +1,64 @@
+/*
+ * 井字棋 —— 全局样式
+ *
+ * 文件名没有 .module，所以类名**不会被哈希**，
+ * App.tsx 里写 className="square" 就能直接命中。
+ * 这和同目录的 App.module.css 是两套机制：
+ *   App.module.css  → 必须 import styles 然后 styles.list
+ *   tictactoe.css   → 直接写类名字符串
+ */
+
+body {
+  margin: 0;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+/* 三行棋盘整体居中 */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.board-row {
+  display: flex;
+  gap: 10px;
+}
+
+.square {
+  width: 88px;
+  height: 88px;
+  display: grid;
+  place-items: center;
+
+  font: inherit;
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1;
+
+  color: #e6edf3;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.08s ease;
+}
+
+.square:hover {
+  background: #1f2630;
+  border-color: #484f58;
+}
+
+.square:active {
+  transform: scale(0.96);
+}

@@ -20,6 +20,7 @@ import App from './App'
 //   那才是它真正要抓的东西。
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <SceneLab />
+    {/* <SceneLab /> */}
+    <App />
   </StrictMode>,
 )

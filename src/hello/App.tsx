@@ -1,40 +1,79 @@
-import { useState, useEffect, useRef} from "react"
-import styles from './App.module.css'
+import { useState } from "react"
+import './tictactoe.css'
 
-const lines = [
-  { id: 1, code: 'const a = 1' },
-  { id: 2, code: 'const b = 2' },
-  { id: 3, code: 'console.log((a+b)' },
-]
+type SquareValue = 'x' | 'o' | null
+type Line = [number,number,number]
 
-
-export default function App() {
-  const [show, setShow] = useState(true)
-  const [n, setN] = useState(0)
-  const inp = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    document.title = `点击了${n}次`
-  },[n])
-  
-  useEffect(() => {
-    console.log('组件挂载了')
-    return () => { console.log('组件卸载了') }
-  },[])
+function Square({ value, onSquareClick }: { value?: SquareValue; onSquareClick: () => void }) {
 
   return (
-    <div>
-      <ul className={styles.list}>
-        {show && lines.map((line,i) => <li className={`${styles.item} ${line.id === 2 ? styles.active : ''}`} key={line.id}>{i+1}.{line.code}</li>)}
-      </ul>
-      <p>{n}</p>
-      <button onClick={() => setN(n+1)}>+1</button>
-      <button onClick={() => setShow(!show)}>切换</button>
-
-      <div>
-        <input ref={inp} />
-        <button onClick={() => inp.current?.focus()}>聚焦</button>
-      </div>
-    </div>
+    <div className="square" onClick={onSquareClick}>{value}</div>
   )
+}
+
+
+
+export default function Brard() {
+  const [xisNext, setXisNext] = useState<boolean>(true)
+  const [squares, setSquares] = useState<SquareValue[]>(Array(9).fill(null))
+
+  function handleClick(i: number) {
+    if (squares[i] || caclulateWinner(squares)) return 
+    const nextSquares = squares.slice()
+    if (xisNext) {
+      nextSquares[i] = 'x'
+    } else {
+      nextSquares[i] = 'o'
+    }
+    setSquares(nextSquares)
+    setXisNext(!xisNext)
+  }
+
+  const winner = caclulateWinner(squares)
+  let status
+  if(winner){
+    status = '胜者' + winner
+  }else{
+    status = '下一步：' + (xisNext ? 'x' : 'o') 
+  }
+
+  return (
+    <>
+      <div className="status">{status}</div>
+      <div className="board-row">
+        <Square value={squares[0]} onSquareClick={() => handleClick(0)} />
+        <Square value={squares[1]} onSquareClick={() => handleClick(1)} />
+        <Square value={squares[2]} onSquareClick={() => handleClick(2)} />
+      </div>
+      <div className="board-row">
+        <Square value={squares[3]} onSquareClick={() => handleClick(3)} />
+        <Square value={squares[4]} onSquareClick={() => handleClick(4)} />
+        <Square value={squares[5]} onSquareClick={() => handleClick(5)} />
+      </div>
+      <div className="board-row">
+        <Square value={squares[6]} onSquareClick={() => handleClick(6)} />
+        <Square value={squares[7]} onSquareClick={() => handleClick(7)} />
+        <Square value={squares[8]} onSquareClick={() => handleClick(8)} />
+      </div>
+    </>
+  )
+}
+
+function caclulateWinner(squares: SquareValue[]){
+  const lines: Line[] = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ]
+
+  for (const [a, b, c] of lines) {
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return squares[a]
+    }
+  }
 }
