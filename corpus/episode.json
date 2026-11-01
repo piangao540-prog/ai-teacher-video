@@ -1,88 +1,112 @@
 {
   "parts": [
     {
-      "text": "canvas 是浏览器里的一块画布，今天讲三件事，让你能立刻上手。"
+      "text": "前端做 Agent，不用从零训练模型。抓住两个点就够了。"
     },
     {
-      "text": "第一，怎么拿到这块画布上的绘图上下文。"
+      "text": "第一，调用大模型接口，并声明工具，让模型能决定做什么。"
     },
     {
-      "text": "第二，canvas 的坐标系长什么样，怎么画一个矩形。"
+      "text": "第二，前端自己执行工具，再把结果送回模型，拿到最终回答。"
     },
     {
-      "text": "第三，新手最容易踩的坑，画布被拉伸变形。"
+      "text": "先说第一个点：接口调用到底解决了什么问题。"
     },
     {
-      "text": "先看最小的一段代码，怎么在页面上画出一个矩形。"
+      "text": "模型输出的不是字符串，而是能直接驱动界面的结构化数据。"
     },
     {
-      "text": "第一行，先拿到页面上这个 canvas 元素，它就是一个普通的标签，只是默认没有内容。"
+      "text": "把可用函数声明给模型，它就能决定什么时候调用哪个。"
     },
     {
-      "text": "第二行，调用 getContext 拿到绘图上下文，参数传 2d，这是后面所有绘图的入口。"
+      "text": "看最小的一步：怎么声明一个工具。"
     },
     {
-      "text": "第三行，设置填充颜色，这里用一个蓝色，接下来画的图形都会用它。"
+      "text": "第一行，初始化客户端，密钥从环境变量里读，别写死在代码里。"
     },
     {
-      "text": "第四行，调用 fillRect 画矩形，四个参数依次是 x、y、宽、高，单位都是像素。"
+      "text": "第二行，接下来声明工具列表，告诉模型有哪些函数可以用。"
     },
     {
-      "text": "第五行，换成 strokeRect 就只画边框，不填充，两个方法经常配合起来用。"
+      "text": "第三行，每个工具的类型都是 function，这是接口约定的写法。"
     },
     {
-      "text": "那这四个参数里的 x 和 y，到底是从哪儿开始算的？"
+      "text": "第四行，工具名要写清楚，模型靠它生成调用参数。"
     },
     {
-      "text": "第一行，从 0 和 0 开始画，矩形贴在左上角，这就是坐标原点。"
+      "text": "第五行，工具数组到这里就准备好了，可以随请求一起发出去。"
     },
     {
-      "text": "第二行，x 变大就往右走，所以这个矩形靠右上，y 还是 0。"
+      "text": "把消息和工具一起发给模型，看它怎么回。"
     },
     {
-      "text": "第三行，y 变大就往下走，这个矩形在左下角，x 还是 0。"
+      "text": "第一行，发起对话请求，把模型名、消息和工具都传进去。"
     },
     {
-      "text": "第四行，两个都变大，就跑到右下角去了，这就是完整的坐标系。"
+      "text": "第二行，模型选一个小一点的就行，演示够用而且便宜。"
     },
     {
-      "text": "讲完画图，再说一个几乎人人都会踩的坑。"
+      "text": "第三行，消息列表带上下文，工具列表带能力，两者缺一不可。"
     },
     {
-      "text": "第一，画布的宽高要写在 canvas 标签的属性上。"
+      "text": "第四行，请求是异步的，要等它返回完整的响应对象。"
     },
     {
-      "text": "第二，用 CSS 设置宽高，画面会被拉伸变形。"
+      "text": "第五行，如果模型决定调用工具，这里就能拿到工具名和参数。"
     },
     {
-      "text": "第三，重新设置宽高属性，画布会被整个清空。"
+      "text": "拿到工具调用之后，前端要自己执行它。"
     },
     {
-      "text": "我们用一个例子看看这个坑到底长什么样。"
+      "text": "第一行，模型给的是 JSON 字符串，先解析成对象才能用。"
     },
     {
-      "text": "第一行，先给 canvas 写一条样式规则，注意这不是标签属性。"
+      "text": "第二行，真正干活的是我们自己的函数，模型只负责决策。"
     },
     {
-      "text": "第二行，CSS 里把宽度写成 400 像素，比属性上的 200 大了一倍。"
+      "text": "执行完还要把结果送回模型，这一步最容易漏。"
     },
     {
-      "text": "第三行，高度也写成 400 像素，于是整块画布被放大了。"
+      "text": "第一行，把执行结果按 tool 角色塞回消息列表，让模型看到。"
     },
     {
-      "text": "第四行，这样写，里面的图形会被整体拉大，边缘就糊了。"
+      "text": "第二行，角色是 tool，还要带上调用 id 和刚才那次调用对上。"
     },
     {
-      "text": "最后把页面跑起来，看看画出来的效果。"
+      "text": "第三行，内容统一转成字符串，模型只认文本格式的结果。"
     },
     {
-      "text": "用 vite 起一个开发服务器，它会自动打开浏览器。"
+      "text": "第四行，这条消息推完，上下文里就多了工具执行的真实结果。"
     },
     {
-      "text": "打开这个页面，就能看到刚才画的那个蓝色矩形。"
+      "text": "最后再请求一次，模型就会用结果组织最终回答。"
     },
     {
-      "text": "现在把刚才那段 CSS 宽高删掉，再刷新一次。"
+      "text": "第一行，第二次请求，消息列表里已经包含工具结果。"
+    },
+    {
+      "text": "第二行，模型保持不变，保证前后风格一致。"
+    },
+    {
+      "text": "第三行，只传消息就够了，这次不需要再带工具列表。"
+    },
+    {
+      "text": "第四行，等响应回来，里面就是给用户的最终自然语言回答。"
+    },
+    {
+      "text": "最容易踩坑的地方，集中在状态和流式这两块。"
+    },
+    {
+      "text": "流式响应是一段一段来的，不能等全收完再更新界面。"
+    },
+    {
+      "text": "工具可能报错或超时，必须把错误也作为结果回传给模型。"
+    },
+    {
+      "text": "最后跑起来看看一次完整的工具调用长什么样。"
+    },
+    {
+      "text": "启动开发服务器。"
     }
   ],
   "scenes": [
@@ -90,158 +114,207 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "canvas 基础使用",
+        "title": "前端学 Agent 的两个点",
         "bullets": [
           {
-            "text": "先拿到绘图上下文",
+            "text": "调用接口并声明工具",
             "part": 1
           },
           {
-            "text": "坐标系和绘制矩形",
+            "text": "执行工具并回传结果",
             "part": 2
-          },
-          {
-            "text": "别让画布被拉伸变形",
-            "part": 3
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 4,
-      "props": {
-        "fileName": "demo.html",
-        "lines": [
-          {
-            "code": "<canvas id=\"board\" width=\"200\" height=\"200\"></canvas>"
-          },
-          {
-            "code": "const canvas = document.querySelector('#board')",
-            "part": 5
-          },
-          {
-            "code": "const ctx = canvas.getContext('2d')",
-            "part": 6
-          },
-          {
-            "code": "ctx.fillStyle = '#3b82f6'",
-            "part": 7
-          },
-          {
-            "code": "ctx.fillRect(20, 20, 100, 60)",
-            "part": 8
-          },
-          {
-            "code": "ctx.strokeRect(20, 20, 100, 60)",
-            "part": 9
-          }
-        ]
-      }
-    },
-    {
-      "template": "CodeTyping",
-      "startPart": 10,
-      "props": {
-        "fileName": "coordinate.js",
-        "lines": [
-          {
-            "code": "ctx.fillRect(0, 0, 50, 50)",
-            "part": 11
-          },
-          {
-            "code": "ctx.fillRect(150, 0, 50, 50)",
-            "part": 12
-          },
-          {
-            "code": "ctx.fillRect(0, 150, 50, 50)",
-            "part": 13
-          },
-          {
-            "code": "ctx.fillRect(150, 150, 50, 50)",
-            "part": 14
           }
         ]
       }
     },
     {
       "template": "SlideBullets",
-      "startPart": 15,
+      "startPart": 3,
       "props": {
-        "title": "新手最容易搞错的地方",
+        "title": "接口调用解决什么",
         "bullets": [
           {
-            "text": "宽高要写在 canvas 属性上",
-            "part": 16
+            "text": "把用户意图变成结构化数据",
+            "part": 4
           },
           {
-            "text": "用 CSS 写宽高会拉伸",
-            "part": 17
-          },
-          {
-            "text": "改宽高会清空画布",
-            "part": 18
+            "text": "工具声明让模型会做事",
+            "part": 5
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 19,
+      "startPart": 6,
       "props": {
-        "fileName": "stretch.css",
+        "fileName": "agent.ts",
         "lines": [
           {
-            "code": "canvas {",
+            "code": "import OpenAI from 'openai'"
+          },
+          {
+            "code": "const client = new OpenAI({ apiKey: '...' })",
+            "part": 7
+          },
+          {
+            "code": "const tools = [{",
+            "part": 8
+          },
+          {
+            "code": "  type: 'function',",
+            "part": 9
+          },
+          {
+            "code": "  function: { name: 'getWeather' }",
+            "part": 10
+          },
+          {
+            "code": "}]",
+            "part": 11
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 12,
+      "props": {
+        "fileName": "call.ts",
+        "lines": [
+          {
+            "code": "const res = await client.chat.completions.create({",
+            "part": 13
+          },
+          {
+            "code": "  model: 'gpt-4o-mini',",
+            "part": 14
+          },
+          {
+            "code": "  messages, tools",
+            "part": 15
+          },
+          {
+            "code": "})",
+            "part": 16
+          },
+          {
+            "code": "const call = res.choices[0].message.tool_calls?.[0]",
+            "part": 17
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 18,
+      "props": {
+        "fileName": "run-tool.ts",
+        "lines": [
+          {
+            "code": "const args = JSON.parse(call.function.arguments)",
+            "part": 19
+          },
+          {
+            "code": "const result = await getWeather(args.city)",
             "part": 20
-          },
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 21,
+      "props": {
+        "fileName": "push-result.ts",
+        "lines": [
           {
-            "code": "  width: 400px;",
-            "part": 21
-          },
-          {
-            "code": "  height: 400px;",
+            "code": "messages.push({",
             "part": 22
           },
           {
-            "code": "}",
+            "code": "  role: 'tool', tool_call_id: call.id,",
             "part": 23
+          },
+          {
+            "code": "  content: JSON.stringify(result)",
+            "part": 24
+          },
+          {
+            "code": "})",
+            "part": 25
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 26,
+      "props": {
+        "fileName": "final.ts",
+        "lines": [
+          {
+            "code": "const final = await client.chat.completions.create({",
+            "part": 27
+          },
+          {
+            "code": "  model: 'gpt-4o-mini',",
+            "part": 28
+          },
+          {
+            "code": "  messages",
+            "part": 29
+          },
+          {
+            "code": "})",
+            "part": 30
+          }
+        ]
+      }
+    },
+    {
+      "template": "SlideBullets",
+      "startPart": 31,
+      "props": {
+        "title": "两个高频坑",
+        "bullets": [
+          {
+            "text": "流式输出要边收边渲染",
+            "part": 32
+          },
+          {
+            "text": "工具调用要处理失败",
+            "part": 33
           }
         ]
       }
     },
     {
       "template": "Terminal",
-      "startPart": 24,
+      "startPart": 34,
       "props": {
-        "title": "运行页面",
+        "title": "运行 Agent",
         "prompt": "$",
         "lines": [
           {
-            "text": "npx vite",
+            "text": "pnpm dev",
             "kind": "command",
-            "part": 25
+            "part": 35
           },
           {
-            "text": "  ➜  Local:   http://localhost:5173/",
+            "text": "➜  Local: http://localhost:5173/",
             "kind": "output"
           },
           {
-            "text": "open http://localhost:5173/demo.html",
-            "kind": "command",
-            "part": 26
-          },
-          {
-            "text": "画布上出现一个蓝色矩形",
+            "text": "[agent] 用户问：北京天气怎么样",
             "kind": "output"
           },
           {
-            "text": "把 CSS 宽高删掉再刷新",
-            "kind": "command",
-            "part": 27
+            "text": "[tool] getWeather({ city: '北京' })",
+            "kind": "output"
           },
           {
-            "text": "矩形恢复清晰，不再变形",
+            "text": "[agent] 北京今天晴，25 度",
             "kind": "output"
           }
         ]

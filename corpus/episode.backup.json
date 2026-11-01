@@ -1,103 +1,91 @@
 {
   "parts": [
     {
-      "text": "今天我们来聊 Nginx 反向代理，很多同学第一次听这个词会觉得有点绕。"
+      "text": "今天我们用几分钟，把 React 最核心的几件事讲清楚。"
     },
     {
-      "text": "先搞清楚它到底解决什么问题，为什么不能让用户直接访问后端。"
+      "text": "第一，在 React 里，组件本质上就是一个函数。"
     },
     {
-      "text": "然后写一份最小能跑通的配置，把请求转发到本地服务。"
+      "text": "第二，用 useState 这个 Hook 来管理会变化的数据。"
     },
     {
-      "text": "最后说两个新手最容易配错的地方，尤其是斜杠和请求头。"
+      "text": "第三，用 JSX 这种语法在函数里描述界面长什么样。"
     },
     {
-      "text": "先说它解决什么问题，这一点想明白了，配置就顺了。"
+      "text": "第四，状态一变，React 会自动重新渲染界面，你不用手动操作 DOM。"
     },
     {
-      "text": "后端服务通常跑在内部端口，比如三千，不希望直接暴露给公网。"
+      "text": "先看一个最小能跑通的计数器例子。"
     },
     {
-      "text": "所有请求先到 Nginx，由它统一处理 HTTPS、证书和域名。"
+      "text": "第一行，先从 React 里把 useState 这个 Hook 导入进来。"
     },
     {
-      "text": "前端页面和接口可以共用一个域名，从根上避免了跨域问题。"
+      "text": "第二行，然后定义一个叫 Counter 的函数，它就是一个组件。"
     },
     {
-      "text": "后端从一台扩到三台，用户看到的还是同一个地址，完全无感。"
+      "text": "第三行，用 useState 声明状态，初始值是 0，它返回一个值和修改它的函数。"
     },
     {
-      "text": "看一份最小配置，把请求转发到本机的三千端口。"
+      "text": "第四行，接下来 return 出这个组件要显示的界面。"
     },
     {
-      "text": "第一行，监听八十端口，也就是浏览器默认访问的那个端口。"
+      "text": "继续把这个组件的界面部分写完。"
     },
     {
-      "text": "第二行，只有访问这个域名的请求，才会交给下面这段处理。"
+      "text": "第一行，按钮的点击事件里调用 setCount，把 count 加一。"
     },
     {
-      "text": "第三行，location 匹配所有以斜杠开头的路径，也就是全部请求。"
+      "text": "第二行，花括号里放 count，界面上就会显示当前数字。"
     },
     {
-      "text": "第四行，把请求转发给本机三千端口的后端服务，这就是反向代理。"
+      "text": "第三行，按钮标签闭合，整个界面结构就写完了。"
     },
     {
-      "text": "配好之后先别急着上线，有两件事必须补上。"
+      "text": "这个例子虽然短，但藏着两个新手最容易踩的坑。"
     },
     {
-      "text": "它决定了路径怎么拼接，加不加结果完全不一样。"
+      "text": "第一个坑，千万不要直接给 count 赋值，必须用 setCount 才能触发更新。"
     },
     {
-      "text": "不然后端拿到的全是 Nginx 自己的地址，日志和限流都会出错。"
+      "text": "第二个坑，setCount 之后不能马上拿到新值，它是异步更新的。"
     },
     {
-      "text": "先看斜杠，这是最容易配错的地方。"
+      "text": "我们来看错误写法和正确写法的对比。"
     },
     {
-      "text": "第一行，结尾带斜杠，请求里 api 这一段会被替换掉。"
+      "text": "第一行，这样直接赋值，React 根本不知道数据变了，界面不会更新。"
     },
     {
-      "text": "第二行，所以访问 api 下的 users，后端收到的是 users。"
+      "text": "第二行，必须调用 setCount，React 才会重新渲染这个组件。"
     },
     {
-      "text": "第三行，再看一遍同样的 location，这次 proxy_pass 结尾不带斜杠。"
+      "text": "第三行，注意，setCount 之后马上打印 count，拿到的还是旧值。"
     },
     {
-      "text": "第四行，路径会原样拼到后端地址后面，不做任何替换。"
+      "text": "第四行，如果要基于上一次的值更新，推荐用函数式写法，把上一个值传进来。"
     },
     {
-      "text": "第五行，这时后端收到的还是带 api 前缀的完整路径。"
+      "text": "理解了这两个坑，我们再回头看一下组件和 JSX 的关系。"
     },
     {
-      "text": "再看请求头，不加这两行后端就是个睁眼瞎。"
+      "text": "组件名首字母必须大写，小写会被当成普通 HTML 标签。"
     },
     {
-      "text": "第一行，把用户访问的原始域名传给后端，后端才能知道是谁在访问。"
+      "text": "JSX 里用花括号插入变量或表达式，外面是普通标签。"
     },
     {
-      "text": "第二行，把真实客户端 IP 传下去，否则后端只能看到 Nginx 的地址。"
+      "text": "组件可以像标签一样复用和嵌套，这就是 React 组合的方式。"
     },
     {
-      "text": "改完配置，先检查语法，再让它生效。"
+      "text": "最后我们把这个组件跑起来，看看效果。"
     },
     {
-      "text": "先测试配置文件有没有语法错误。"
+      "text": "在项目目录下启动开发服务器。"
     },
     {
-      "text": "平滑重载，不用重启就能让新配置生效。"
-    },
-    {
-      "text": "用 curl 验证一下，请求确实被转发到了后端。"
-    },
-    {
-      "text": "最后总结一下，记住两件事就够了。"
-    },
-    {
-      "text": "带斜杠会替换掉 location 匹配的部分，不带斜杠会原样拼上去。"
-    },
-    {
-      "text": "不然后端拿到的就是 Nginx 自己的地址，日志和限流都会出错。"
+      "text": "打开浏览器点一下按钮，数字就从 0 变成 1 了。"
     }
   ],
   "scenes": [
@@ -105,78 +93,69 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "Nginx 反向代理",
+        "title": "React 快速入门",
         "bullets": [
           {
-            "text": "为什么需要反向代理",
+            "text": "组件就是函数",
             "part": 1
           },
           {
-            "text": "最小可用的配置",
+            "text": "useState 管数据",
             "part": 2
           },
           {
-            "text": "最容易踩的两个坑",
+            "text": "JSX 描述界面",
             "part": 3
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 4,
-      "props": {
-        "title": "它解决什么问题",
-        "bullets": [
-          {
-            "text": "后端端口不直接暴露",
-            "part": 5
           },
           {
-            "text": "统一入口，方便加 HTTPS",
-            "part": 6
-          },
-          {
-            "text": "前后端共用一个域名",
-            "part": 7
-          },
-          {
-            "text": "后端扩容对用户透明",
-            "part": 8
+            "text": "状态变了自动重渲染",
+            "part": 4
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 9,
+      "startPart": 5,
       "props": {
-        "fileName": "nginx.conf",
+        "fileName": "Counter.jsx",
         "lines": [
           {
-            "code": "server {"
+            "code": "import { useState } from 'react'",
+            "part": 6
           },
           {
-            "code": "  listen 80;",
-            "part": 10
+            "code": "function Counter() {",
+            "part": 7
           },
           {
-            "code": "  server_name example.com;",
+            "code": "  const [count, setCount] = useState(0)",
+            "part": 8
+          },
+          {
+            "code": "  return (",
+            "part": 9
+          }
+        ]
+      }
+    },
+    {
+      "template": "CodeTyping",
+      "startPart": 10,
+      "props": {
+        "fileName": "Counter.jsx",
+        "lines": [
+          {
+            "code": "    <button onClick={() => setCount(count + 1)}>",
             "part": 11
           },
           {
-            "code": "  location / {",
+            "code": "      {count}",
             "part": 12
           },
           {
-            "code": "    proxy_pass http://127.0.0.1:3000;",
+            "code": "    </button>",
             "part": 13
-          },
-          {
-            "code": "  }"
-          },
-          {
-            "code": "}"
           }
         ]
       }
@@ -185,14 +164,14 @@
       "template": "SlideBullets",
       "startPart": 14,
       "props": {
-        "title": "两个必须补的点",
+        "title": "两个最常见的坑",
         "bullets": [
           {
-            "text": "proxy_pass 结尾的斜杠",
+            "text": "不要直接改 state",
             "part": 15
           },
           {
-            "text": "Host 和真实 IP 要传下去",
+            "text": "setState 是异步的",
             "part": 16
           }
         ]
@@ -202,59 +181,44 @@
       "template": "CodeTyping",
       "startPart": 17,
       "props": {
-        "fileName": "proxy-slash.conf",
+        "fileName": "Mistake.jsx",
         "lines": [
           {
-            "code": "location /api/ {"
-          },
-          {
-            "code": "  proxy_pass http://127.0.0.1:3000/;",
+            "code": "count = count + 1",
             "part": 18
           },
           {
-            "code": "  # /api/users  ->  /users",
+            "code": "setCount(count + 1)",
             "part": 19
           },
           {
-            "code": "}"
-          },
-          {
-            "code": "location /api/ {",
+            "code": "console.log(count)",
             "part": 20
           },
           {
-            "code": "  proxy_pass http://127.0.0.1:3000;",
+            "code": "setCount(c => c + 1)",
             "part": 21
-          },
-          {
-            "code": "  # /api/users  ->  /api/users",
-            "part": 22
           }
         ]
       }
     },
     {
-      "template": "CodeTyping",
-      "startPart": 23,
+      "template": "SlideBullets",
+      "startPart": 22,
       "props": {
-        "fileName": "proxy-headers.conf",
-        "lines": [
+        "title": "组件与 JSX",
+        "bullets": [
           {
-            "code": "location /api/ {"
+            "text": "组件名首字母大写",
+            "part": 23
           },
           {
-            "code": "  proxy_pass http://127.0.0.1:3000/;"
-          },
-          {
-            "code": "  proxy_set_header Host $host;",
+            "text": "JSX 里用花括号插值",
             "part": 24
           },
           {
-            "code": "  proxy_set_header X-Real-IP $remote_addr;",
+            "text": "组件可以复用和嵌套",
             "part": 25
-          },
-          {
-            "code": "}"
           }
         ]
       }
@@ -263,48 +227,30 @@
       "template": "Terminal",
       "startPart": 26,
       "props": {
-        "title": "生效配置",
+        "title": "启动项目",
         "prompt": "$",
         "lines": [
           {
-            "text": "nginx -t",
+            "text": "npm run dev",
             "kind": "command",
             "part": 27
           },
           {
-            "text": "nginx: configuration file test is successful",
+            "text": "VITE v5.0.0  ready in 300 ms",
             "kind": "output"
           },
           {
-            "text": "nginx -s reload",
+            "text": "➜  Local: http://localhost:5173/",
+            "kind": "output"
+          },
+          {
+            "text": "点击按钮，数字从 0 变成 1",
             "kind": "command",
             "part": 28
           },
           {
-            "text": "curl http://example.com/api/users",
-            "kind": "command",
-            "part": 29
-          },
-          {
-            "text": "[{\"id\":1,\"name\":\"Alice\"}]",
+            "text": "界面自动更新，不用手动操作 DOM",
             "kind": "output"
-          }
-        ]
-      }
-    },
-    {
-      "template": "SlideBullets",
-      "startPart": 30,
-      "props": {
-        "title": "两个关键点",
-        "bullets": [
-          {
-            "text": "proxy_pass 结尾的斜杠决定路径拼接",
-            "part": 31
-          },
-          {
-            "text": "转发时记得带上 Host 和真实 IP",
-            "part": 32
           }
         ]
       }
