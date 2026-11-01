@@ -217,6 +217,43 @@ check(
   '提示：名字写在 import 铺垫行里也算「还没登场」→ 照样报出来',
 )
 
+// ---- 2.7 续行不是铺垫行 ----
+//
+// 模型为了满足「每行最多 60 字符」，会把长 import 拆成两行。第二行没有 part，
+// 但它是上一行没写完的延续，不是「排在中间的铺垫行」—— 必须放行。
+// 否则模型每次都会在同一条 import 上撞死：报错、重试、再报错。
+const splitImport: Episode = {
+  parts: [{ text: '先导入 McpServer。' }, { text: '再创建服务。' }],
+  scenes: [{
+    template: 'CodeTyping',
+    startPart: 0,
+    props: {
+      fileName: 'agent.ts',
+      lines: [
+        { code: 'import { McpServer } from', part: 0 },
+        { code: "'@modelcontextprotocol/sdk/server/mcp.js'" },
+        { code: 'const server = new McpServer()', part: 1 },
+      ],
+    },
+  }],
+}
+check(
+  !checkEditorial(splitImport).some((p) => p.includes('铺垫行')),
+  '续行放行：拆开的长 import 不再被当成中间铺垫行',
+)
+
+// 但真正的「中间铺垫行」仍然要拦：上一行是完整语句，这一行却没写 part。
+const strayLine = structuredClone(splitImport)
+const strayLines = (strayLine.scenes[0]!.props as {
+  lines: Array<{ code: string; part?: number }>
+}).lines
+strayLines[0] = { code: 'const a = 1', part: 0 }
+strayLines[1] = { code: "console.log('x')" }
+check(
+  checkEditorial(strayLine).some((p) => p.includes('铺垫行')),
+  '拦住：完整语句夹在中间却没写 say',
+)
+
 // ---- Flow：示意图 ----
 const flowAuthored: AuthoredEpisode = {
   scenes: [{

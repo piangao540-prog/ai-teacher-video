@@ -136,11 +136,15 @@ function repairHint(problems: string[]): string {
   }
   if (problems.some((p) => p.includes('个字符，超过'))) {
     hints.push(
-      '- 「代码行太长」（超过 60 字符会被裁掉）：**拆成两行，或者抽中间变量**。例如\n' +
+      '- 「代码行太长」（超过 60 字符会被裁掉）：**抽中间变量，或者把同一条语句折到下一行**。\n' +
+        '  折行时上一行要以 `from`、逗号、开括号或运算符结尾，程序会把它当成同一行（续行）；\n' +
+        '  不要把长行拆成两条**完整语句** —— 新出现的完整语句也要有自己的一句 say，\n' +
+        '  否则它会被当成「排在中间的铺垫行」。例如：\n' +
         '      const scale = Math.min(1, maxSize / Math.max(img.width, img.height))\n' +
-        '  改成两行：\n' +
+        '  可以改成两条语句：\n' +
         '      const w = img.width, h = img.height\n' +
-        '      const scale = Math.min(1, maxSize / Math.max(w, h))',
+        '      const scale = Math.min(1, maxSize / Math.max(w, h))\n' +
+        '  这两行都要写 say；或者直接把第一行挪到代码块最前面当铺垫行。',
     )
   }
   if (problems.some((p) => p.includes('行，超过'))) {

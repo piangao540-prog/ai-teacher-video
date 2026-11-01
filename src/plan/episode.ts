@@ -411,11 +411,22 @@ function checkCodeNarration(
   const hasPart = (l: { part?: number }): boolean => typeof l.part === 'number'
   // 纯收尾符号：} / }) / ); 这类，没有讲解也说得过去
   const isCloser = (b: string): boolean => /^[\s}\]\);,]*$/.test(b)
-  // 铺垫行：没写 part，又不是纯收尾符号 —— 只为交代上下文，讲稿里没有专门讲它的那句
-  const isPreamble = (l: { code?: string; part?: number }): boolean => !hasPart(l) && !isCloser(bodyOf(l))
+  // 续行：没有 part，但它是上一条语句没写完的延续 —— 模型为了满足「每行最多 60 字符」，
+  // 会把长 import 拆成 `import { X } from` + `'.../x.js'` 两行，第二行就是这种。
+  // 它不是「铺垫行」：铺垫行是正文开始前的上下文，续行属于上一条语句本身。
+  // 上一行以 from、逗号、开括号或运算符结尾，就认为语句还没写完。
+  const endsOpen = (b: string): boolean =>
+    /(?:\bfrom|=>|&&|\|\||[,[{(.=+\-*/?:])$/.test(b.trimEnd())
 
   // ---- 铺垫行的栏杆：数量 + 位置 ----
-  const preambles = lines.map((l, j) => (isPreamble(l) ? j : -1)).filter((j) => j >= 0)
+  // 边扫边判「上一行写完了没有」：只有语句已经收尾、这一行又没 part，才算铺垫行。
+  const preambles: number[] = []
+  let open = false
+  lines.forEach((l, j) => {
+    const b = bodyOf(l)
+    if (!hasPart(l) && !isCloser(b) && !open) preambles.push(j)
+    open = endsOpen(b)
+  })
   const firstParted = lines.findIndex(hasPart)
 
   if (preambles.length > LIMITS.maxPreambleLines) {
