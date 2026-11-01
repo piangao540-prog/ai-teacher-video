@@ -17,7 +17,7 @@
 //      （它不是校验，见 narration-hint.ts）。
 
 import { readFile } from 'node:fs/promises'
-import { addLineNumbers, deriveEpisode, validateAuthored, type AuthoredEpisode } from './authoring'
+import { ELEMENT_KEYS, addLineNumbers, deriveEpisode, validateAuthored, type AuthoredEpisode } from './authoring'
 import { checkEditorial, cnOrdinal, narratedOrdinals, validateEpisode, type Episode } from './episode'
 import { findMislaidNarration } from './narration-hint'
 
@@ -58,7 +58,7 @@ function assertSameObject(authored: AuthoredEpisode, derived: Episode): string[]
     if (out.startPart <= lastStart) problems.push(`scenes[${si}] 的 startPart 没有严格递增`)
     lastStart = out.startPart
 
-    for (const key of ['bullets', 'lines'] as const) {
+    for (const key of ELEMENT_KEYS) {
       const before = scene.props?.[key]
       const after = (out.props as Record<string, unknown>)[key]
       if (!Array.isArray(before) || !Array.isArray(after)) continue
@@ -217,6 +217,45 @@ check(
   '提示：名字写在 import 铺垫行里也算「还没登场」→ 照样报出来',
 )
 
+// ---- Flow：示意图 ----
+const flowAuthored: AuthoredEpisode = {
+  scenes: [{
+    template: 'Flow',
+    say: ['看一条视频要经过哪几步。'],
+    props: {
+      title: '从讲稿到成片',
+      steps: [
+        { text: '写讲稿', say: '第一步，先把内容写成讲稿。' },
+        { text: '配音', say: '第二步，把讲稿交给语音合成。' },
+        { text: '出片', say: '第三步，把画面和声音合起来。' },
+      ],
+    },
+  }],
+}
+
+const flowAuthoredProblems = validateAuthored(flowAuthored)
+check(flowAuthoredProblems.length === 0, 'Flow 是合法的创作格式' + (flowAuthoredProblems[0] ?? ''))
+
+const flowEpisode = deriveEpisode(flowAuthored)
+const flowStructural = validateEpisode(flowEpisode)
+check(flowStructural.length === 0, 'Flow 推导后过结构校验' + (flowStructural[0] ?? ''))
+check(assertSameObject(flowAuthored, flowEpisode).length === 0, 'Flow：每一步 ↔ 它自己的那句话')
+
+const flowSteps = (flowEpisode.scenes[0]!.props as { steps: Array<{ text: string; part: number }> }).steps
+check(flowSteps[1]!.part === 2, 'Flow：第二步指向讲稿第 2 段（场景 say 占第 0 段）')
+
+const flowEditorial = checkEditorial(flowEpisode).filter((p) => !p.includes('太短'))
+check(flowEditorial.length === 0, 'Flow 过编辑校验（除字数下限）' + (flowEditorial[0] ?? ''))
+
+// 超过 4 步要能被拦住
+const tooManySteps = structuredClone(flowEpisode)
+const tooManyProps = tooManySteps.scenes[0]!.props as { steps: Array<{ text: string; part: number }> }
+tooManyProps.steps.push({ text: '第四步', part: 0 }, { text: '第五步', part: 0 })
+check(
+  checkEditorial(tooManySteps).some((p) => p.includes('步上限')),
+  '拦住：Flow 超过 4 步',
+)
+
 // ---- 3. 反例：这些必须被拦住 ----
 //
 // 第一条最要紧：模型完全可能退回旧格式（它见过的旧约定太多了），
@@ -240,6 +279,7 @@ const rejects: Array<[string, unknown]> = [
   ],
   ['场景 say 里写了「第 N 行」', { scenes: [{ template: 'SlideBullets', say: ['第一行，y'], props: {} }] }],
   ['scenes 是空的', { scenes: [] }],
+  ['Flow 步骤没写 say', { scenes: [{ template: 'Flow', say: ['a'], props: { steps: [{ text: 'x' }] } }] }],
   ['根本不是对象', '不是对象'],
 ]
 
