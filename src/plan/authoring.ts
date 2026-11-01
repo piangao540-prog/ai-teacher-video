@@ -68,7 +68,7 @@ export type AuthoredScene = {
 export type AuthoredEpisode = { scenes: AuthoredScene[] }
 
 /** 哪些 props 键下面装的是「会一个个出现的元素」。顺序就是出现的顺序。 */
-const ELEMENT_KEYS = ['bullets', 'lines'] as const
+export const ELEMENT_KEYS = ['bullets', 'lines', 'steps'] as const
 
 // 把 say 归一成字符串数组。
 //
@@ -172,6 +172,13 @@ export function validateAuthored(input: unknown): string[] {
         const says = toSentences(el.say, where + '.say', problems)
         elementSentenceCount += says.length
 
+        if (says.length === 0 && key === 'steps') {
+          problems.push(
+            where + ' 没写 say。**示意图的每一步都必须写一句 say** —— ' +
+            '这句话开口的瞬间，这个框才会出现。不写的话它永远不会亮。',
+          )
+        }
+
         // 要点不写 say 时靠「跟场景开头一起出现」兜底，所以场景开头必须有话说。
         if (says.length === 0 && key === 'bullets' && sceneSay.length === 0) {
           problems.push(
@@ -205,6 +212,8 @@ export function validateAuthored(input: unknown): string[] {
  *        要点：跟场景开头那一句一起出现（part = 本场景的第一段）；
  *        代码行 / 终端输出行：不写 part，交给渲染器按打字顺序跟在上一行后面。
  *          —— 代码行这条就是「铺垫行」，上限和位置由 checkCodeNarration 那道栏杆管。
+ *        示意图步骤：和要点不同，**不允许不写 say**（validateAuthored 拦），
+ *            所以不存在「跟场景开头一起出现」的兜底。
  */
 export function deriveEpisode(authored: AuthoredEpisode): Episode {
   const parts: Part[] = []

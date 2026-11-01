@@ -47,9 +47,9 @@ export type Episode = {
 //
 // ★ 在这之前**没有任何一处校验模板名是否合法** —— template 就是个裸 string，
 //   名字写错了会一路穿过校验，到 build-storyboard 才抛错；更糟的是
-//   Stage.vue 找不到组件时 `TEMPLATES[name] ?? null` 会让画面**安静地空白**。
-//   加新模板时这里、build-storyboard 的分支、Stage.vue 的两张表都要同步。
-export const TEMPLATE_NAMES = ['SlideBullets', 'CodeTyping', 'Terminal']
+//   Stage.tsx 找不到组件时 `TEMPLATES[name] ?? null` 会让画面**安静地空白**。
+//   加新模板时这里、build-storyboard 的分支、Stage.tsx 的两张表都要同步。
+export const TEMPLATE_NAMES = ['SlideBullets', 'CodeTyping', 'Terminal', 'Flow']
 
 export function narrationOf(episode: Episode): string {
   return episode.parts.map((p) => p.text).join('')
@@ -89,7 +89,7 @@ export function validateEpisode(episode: Episode): string[] {
       problems.push(
         'scenes[' + si + '] 的 template「' + s.template + '」不是已知的画面模板。' +
           '可用的只有：' + TEMPLATE_NAMES.join(' / ') + '。' +
-          '（拼错的话 Stage.vue 找不到组件，画面会一片空白而且不报错 —— 所以在这里就拦住。）',
+          '（拼错的话 Stage.tsx 找不到组件，画面会一片空白而且不报错 —— 所以在这里就拦住。）',
       )
     }
     if (typeof s.startPart !== 'number' || !Number.isInteger(s.startPart)) {
@@ -180,6 +180,12 @@ export const LIMITS = {
   // 一个场景最多覆盖几段讲稿。
   // 一个场景挂太久（画面一动不动几十秒），观众会以为卡住了。
   maxSceneParts: 6,
+
+  // 示意图：一排方框。超过 4 个，1920 宽就放不下 12 个字的框了。
+  minFlowSteps: 2,
+  maxFlowSteps: 4,
+  maxStepChars: 12,
+
 }
 
 export function checkEditorial(episode: Episode): string[] {
@@ -252,6 +258,39 @@ export function checkEditorial(episode: Episode): string[] {
         if (typeof b.part !== 'number') {
           problems.push(
             tag + ' bullets[' + j + '] 没有 part。**幻灯片里每一条要点都必须写 part**（第几段讲稿念到时出现），否则它会和声音错开。',
+          )
+        }
+      })
+    }
+
+    if (Array.isArray(props.steps)) {
+      const steps = props.steps as Array<{ text?: string; part?: number }>
+      if (steps.length > LIMITS.maxFlowSteps) {
+        problems.push(
+          tag + ' 有 ' + steps.length + ' 步，超过 ' + LIMITS.maxFlowSteps +
+          ' 步上限，一排放不下。拆成两个场景，或者合并相邻的步骤。',
+        )
+      }
+      if (steps.length < LIMITS.minFlowSteps) {
+        problems.push(
+          tag + ' 只有 ' + steps.length + ' 步，示意图至少要 ' + LIMITS.minFlowSteps +
+          ' 步（一步就只是一个标签，画不成流程）。',
+        )
+      }
+      steps.forEach((st, j) => {
+        const text = typeof st.text === 'string' ? st.text : ''
+        if (text.trim() === '') {
+          problems.push(tag + ' steps[' + j + '] 没有 text。')
+        } else if (text.length > LIMITS.maxStepChars) {
+          problems.push(
+            tag + ' steps[' + j + ']「' + text + '」有 ' + text.length +
+            ' 个字，超过 ' + LIMITS.maxStepChars + ' 上限，框里会折行，改短。',
+          )
+        }
+        if (typeof st.part !== 'number') {
+          problems.push(
+            tag + ' steps[' + j + '] 没有 part。**示意图的每一步都要有自己的 say**，' +
+            '否则它没有出现的时机。',
           )
         }
       })

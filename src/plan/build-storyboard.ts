@@ -130,8 +130,21 @@ const scenes = episode.scenes.map((s, si) => {
       return { text: l.text, kind: l.kind, atMs }
     })
     props = { title: p.title, prompt: p.prompt ?? '$', lines }
+  } else if (s.template === 'Flow') {
+    const p = s.props as {
+      title?: string
+      steps: Array<{ text: string; part: number }>
+    }
+    props = {
+      title: p.title,
+      titleAtMs: 0,
+      steps: p.steps.map((st) => ({
+        text: st.text,
+        atMs: Math.max(0, partTimes[st.part]! - startMs),
+      })),
+    }
   } else {
-    throw new Error('不认识的场景模板「' + s.template + '」。要么拼错了，要么还没在 Stage.vue 里注册。')
+    throw new Error('不认识的场景模板「' + s.template + '」。要么拼错了，要么还没在 Stage.tsx 里注册。')
   }
 
   return { id: 's' + (si + 1), template: s.template, startMs, endMs, props }
@@ -215,6 +228,11 @@ for (const [si, sc] of scenes.entries()) {
   if (Array.isArray(p.bullets)) {
     for (const b of p.bullets as Array<{ text: string; atMs: number }>) {
       console.log('    +' + String(b.atMs).padStart(6) + 'ms   ' + b.text)
+    }
+  }
+  if (Array.isArray(p.steps)) {
+    for (const st of p.steps as Array<{ text: string; atMs: number }>) {
+      console.log('    +' + String(st.atMs).padStart(6) + 'ms   ' + st.text)
     }
   }
   if (typeof p.fileName === 'string') console.log('    文件: ' + p.fileName)
