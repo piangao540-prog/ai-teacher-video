@@ -3,6 +3,7 @@ import styles from './Stage.module.css'
 import CodeTyping from "../scenes/CodeTyping"
 import SlideBullets from "../scenes/SlideBullets"
 import Terminal from "../scenes/Terminal"
+import Flow from "../scenes/Flow"
 import Subtitle, { type SubtitleVariant } from "./Subtitle"
 
 
@@ -29,7 +30,7 @@ const asVariant = (v:string | null): SubtitleVariant | null =>
 const SCRUB_STEP_MS = 16
 
 const TEMPLATES: Record<string, ComponentType<any>> = {
-    SlideBullets, CodeTyping, Terminal,
+    SlideBullets, CodeTyping, Terminal, Flow,
 }
 
 // 场景

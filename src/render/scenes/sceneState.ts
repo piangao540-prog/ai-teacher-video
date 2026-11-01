@@ -104,3 +104,36 @@ export function terminalStateAt(t: number, lines: TermLine[]): TermState {
         caret: typingLine >= 0 && Math.floor(t / BLINK_MS) % 2 === 0,
     }
 }
+
+// --- Flow（示意图）---
+
+export type FlowStep = {atMs: number}
+
+export type FlowState = {
+    titleOpacity: number
+    //第i个框的透明度
+    stepOpacity: number[]
+    // 第i个箭头的透明度，连接第i步和第i+1步
+    arrowOpacity: number[]
+}
+
+/**
+ * 示意图在时刻 t 的全部透明度。
+ *
+ * 箭头跟着**下一步**出现：下一步的框开始淡入时，它前面那个箭头一起淡入。
+ * 所有元素从第一帧就占好位置，这里只算 opacity —— 不做位移、不做条件渲染，
+ * 所以布局永远不跳。
+ */
+
+export function flowStateAt(
+    t:number,
+    p: {titleAtMs: number; steps: FlowStep[]},
+): FlowState{
+    const fade = (startAtMs: number, ms: number) => 
+        Math.max(0,Math.min((t - startAtMs) / ms, 1))
+    return {
+        titleOpacity: fade(p.titleAtMs, SLIDE_TITLE_FADE_MS),
+        stepOpacity: p.steps.map((s) => fade(s.atMs, SLIDE_FADE_MS)),
+        arrowOpacity: p.steps.slice(1).map((s) => fade(s.atMs, SLIDE_FADE_MS)),
+    }
+}
