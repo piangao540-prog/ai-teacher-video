@@ -2,6 +2,7 @@ import path from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { planApi } from './src/server/plan-api'
+import { cueEditsApi } from './src/server/cue-edits-api'
 import { sendFile } from './src/server/send-file'
 
 const MIME: Record<string, string> = {
@@ -59,8 +60,20 @@ function planApiPlugin(): Plugin {
   }
 }
 
+// 「编辑器保存字幕修订」的 POST 端点。
+// 同 planApiPlugin：同一段中间件链，业务逻辑在 src/server/cue-edits-api.ts。
+// 只有 dev server 有它 —— 构建产物里不存在。
+function cueEditsPlugin(): Plugin {
+  return {
+    name: 'cue-edits-api',
+    configureServer(server) {
+      server.middlewares.use(cueEditsApi())
+    },
+  }
+}
+
 export default defineConfig({
   // 用 file:// 直接打开构建产物时必须是相对路径
   base: './',
-  plugins: [react(), stageDataPlugin(), planApiPlugin()],
+  plugins: [react(), stageDataPlugin(), planApiPlugin(), cueEditsPlugin()],
 })

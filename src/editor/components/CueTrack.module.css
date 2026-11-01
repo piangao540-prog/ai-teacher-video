@@ -1,0 +1,21 @@
+.track {
+    position: relative;
+    height: 28px;
+    margin-top: 8px;
+    background: #161b22;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cue {
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    background: #3fb950;
+    border-radius: 3px;
+    opacity: 0.75;
+}
+
+.cue:hover {
+    opacity: 1;
+}

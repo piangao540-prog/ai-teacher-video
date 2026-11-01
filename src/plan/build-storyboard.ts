@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { narratedOrdinals, validateEpisode, type Episode } from './episode'
-import { buildCues, norm } from './subtitle'
+import { buildCues, norm, wrapCue} from './subtitle'
 import { toSrt, toVtt } from './subtitle-export'
 // ★ 打字速度从 sceneState.ts import，不再在这里抄一份。
 //   这个常量决定「第几个字符什么时候出现」，分镜和渲染必须是同一个值 ——
@@ -181,6 +181,40 @@ if (covered !== expected) {
       })(),
   )
 }
+
+// ---- 人工字幕修订 ----
+// 来源：编辑器导出的 corpus/cue-edits.json。
+// 位置有讲究：放在覆盖率自检之后 —— 那个自检校验的是"断句算法有没有漏字"，
+// 人工改字本来就会让文字和讲稿不一致，不能让自检去管它。
+const EDITS_FILE = path.resolve('corpus/cue-edits.json')
+
+type CueEdits = { timings?: string | null; edits: Array<{ i: number; text: string }> }
+
+let cueEdits: CueEdits | null = null
+try {
+  cueEdits = JSON.parse(await readFile(EDITS_FILE, 'utf8')) as CueEdits
+} catch {
+  // 没有修订文件是正常情况
+}
+
+if (cueEdits) {
+  const timingsId = await fileId(TIMINGS_FILE)
+  if (cueEdits.timings !== timingsId) {
+    console.warn('⚠ cue-edits.json 是另一版配音的，已跳过；要改请重新导出修订')
+  } else {
+    let applied = 0
+    for (const e of cueEdits.edits) {
+      const cue = cues.find((c) => c.i === e.i)
+      if (!cue) continue
+      cue.text = e.text
+      cue.lines = wrapCue(e.text)
+      applied++
+    }
+    console.log('人工字幕修订：应用了 ' + applied + ' 条')
+  }
+}
+
+
 
 const storyboard = {
   durationMs: timings.durationMs,
