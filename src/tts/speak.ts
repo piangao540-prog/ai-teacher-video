@@ -1,3 +1,4 @@
+import { HttpsProxyAgent } from 'https-proxy-agent'
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts'
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -18,6 +19,9 @@ try {
 const PROVIDER = process.env.TTS_PROVIDER ?? 'edge'
 const VOICE = process.env.TTS_VOICE ?? (PROVIDER === 'xfyun' ? 'xiaoyan' : 'zh-CN-XiaoxiaoNeural')
 const SPEED = Number(process.env.TTS_SPEED ?? 50)
+// Edge 的接口（api.msedgeservices.com）直连经常不通，而它底下的 ws 不认
+// HTTPS_PROXY 这些环境变量 —— 代理得自己塞给 MsEdgeTTS。留空就直连。
+const PROXY = process.env.TTS_PROXY
 
 // 讲稿不再单独存一个 txt —— 它是从剧本的 parts 拼出来的。
 // 这样就不会出现「txt 改了、剧本没改」这种两边不一致的情况。
@@ -81,7 +85,11 @@ if (PROVIDER === 'xfyun') {
   anchors = derived.anchors
   console.log('ced 帧数: ' + result.frames.length + '  ->  推导出 ' + anchors.length + ' 个锚点')
 } else {
-  const tts = new MsEdgeTTS()
+  const tts = new MsEdgeTTS({
+    ...(PROXY ? { agent: new HttpsProxyAgent(PROXY) } : {}),
+    // 默认 10 秒。走代理时握手要绕一圈，2–3 秒起步，网络一抖就顶到上限。
+    connectionTimeoutMs: 30_000,
+  })
   await tts.setMetadata(VOICE, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3, {
     wordBoundaryEnabled: true,
   })
