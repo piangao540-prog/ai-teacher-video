@@ -5,6 +5,8 @@ import SlideBullets from "../scenes/SlideBullets"
 import Terminal from "../scenes/Terminal"
 import Flow from "../scenes/Flow"
 import Subtitle, { type SubtitleVariant } from "./Subtitle"
+import type { Storyboard, Cue, Scene } from '../../type/storyboard'
+
 
 
 
@@ -15,7 +17,7 @@ const isRender = params.has('render')
 // 字幕外观。只影响样式，不参与任何时间计算。
 // 出片走 ?subs=xxx（shot.ts 拼的），预览可用 &subs=xxx 或工具栏那个下拉。
 const VARIANTS: SubtitleVariant[] = ['pill', 'box', 'glass', 'bar']
-const asVariant = (v:string | null): SubtitleVariant | null => 
+const asVariant = (v: string | null): SubtitleVariant | null =>
     VARIANTS.includes(v as SubtitleVariant) ? (v as SubtitleVariant) : null
 
 /**
@@ -30,34 +32,15 @@ const asVariant = (v:string | null): SubtitleVariant | null =>
 const SCRUB_STEP_MS = 16
 
 const TEMPLATES: Record<string, ComponentType<any>> = {
-    SlideBullets, CodeTyping, Terminal, Flow,
+    SlideBullets, CodeTyping, Terminal, Flow
 }
 
-// 场景
-type Scene = {
-    id: string
-    template: string
-    startMs: number
-    endMs: number
-    props: Record<string, unknown>
-}
-
-// 故事板
-type Storyboard = {
-    durationMs: number
-    audioFile: string
-    scenes: Scene[]
-    cues?: Cue[]
-}
-
-// 字幕
-type Cue = { i: number; startMs: number; endMs: number; text: string; lines: string[] }
 
 // 
 type StaleEdge = { edge: string; label: string; verdict: 'ok' | 'mismatch' | 'unknown'; detail: string }
 
 
-export default function Stage(){
+export default function Stage() {
     const [storyboard, setStoryboard] = useState<Storyboard | null>(null)
     const [t, setT] = useState(0)
     // 按钮上显示 ⏸ 还是 ▶，就看这一个。它是 UI 状态，不进画面 ——
@@ -82,17 +65,17 @@ export default function Stage(){
     // 查不到就什么都不说，绝不能因为「状态没查到」把 storyboard 的加载也带崩。
     // 出片模式不查：那条路径上 .controls 根本不在 DOM 里，查了也白查。
     useEffect(() => {
-        if(isRender) return
-        void(async () =>{
-            try{
+        if (isRender) return
+        void (async () => {
+            try {
                 const res = await fetch('/api/status')
-                if(!res.ok) return
-                setStaleEdges(((await res.json()) as {edges?: StaleEdge[]}).edges ?? [])
-            }catch{
+                if (!res.ok) return
+                setStaleEdges(((await res.json()) as { edges?: StaleEdge[] }).edges ?? [])
+            } catch {
                 // 查不到就闭嘴。把「查不到」显示成「有问题」比不显示更坏。
             }
         })()
-    },[])
+    }, [])
 
     const duration = storyboard?.durationMs ?? 0
 
@@ -104,18 +87,18 @@ export default function Stage(){
     const subtitleOn = showSubs && cues.length > 0
 
     // 音频也在 out/render/audio 里，由服务器直接喂过来
-    const audioSrc = storyboard ? './audio/' + storyboard.audioFile: ''
+    const audioSrc = storyboard ? './audio/' + storyboard.audioFile : ''
 
     /** 某一时刻正在演的是哪个场景（取最后一个已经开始的） */
-    function sceneAt(ms:number): Scene | null {
+    function sceneAt(ms: number): Scene | null {
         const list = storyboard?.scenes ?? []
-        let found: Scene | null = null 
-        for(const s of list) if (ms >= s.startMs) found = s
+        let found: Scene | null = null
+        for (const s of list) if (ms >= s.startMs) found = s
         return found ?? list[0] ?? null
     }
 
     const current = sceneAt(t)
-    const CurrentComponent = current ? (TEMPLATES[current.template] ?? null): null
+    const CurrentComponent = current ? (TEMPLATES[current.template] ?? null) : null
     const localT = current ? t - current.startMs : 0
 
     /** 标签上那句话。「不知道是哪一版」和「是旧的」必须分开说 ——
@@ -141,13 +124,13 @@ export default function Stage(){
     const scrubbing = useRef(false)
     const resumeAfterScrub = useRef(false)
 
-    function setPlayingBoth(v: boolean){
+    function setPlayingBoth(v: boolean) {
         playingRef.current = v
         setPlaying(v)
     }
 
     function stopTicking() {
-        if(raf.current) cancelAnimationFrame(raf.current)
+        if (raf.current) cancelAnimationFrame(raf.current)
         raf.current = 0
     }
 
@@ -162,7 +145,7 @@ export default function Stage(){
         setPlayingBoth(true)
         const audio = audioEl.current
 
-        if(audio){
+        if (audio) {
             audio.currentTime = from / 1000
             // 播不起来（自动播放被拦、音频 404）就把按钮弹回 ▶，
             // 否则按钮一直显示 ⏸、画面纹丝不动 —— 按钮在撒谎。
@@ -174,14 +157,14 @@ export default function Stage(){
                 // 用自己这份 playing 判「还该不该往下走」，不用 audio.paused：
                 // play() 是异步的，刚调完那一瞬 audio.paused 还是 true，
                 // 拿它当判据会让按钮在播起来的第一帧就弹回去。
-                if(next >= duration || !playingRef.current) {
+                if (next >= duration || !playingRef.current) {
                     setPlayingBoth(false)
                     return
                 }
                 raf.current = requestAnimationFrame(tick)
             }
             raf.current = requestAnimationFrame(tick)
-            return 
+            return
         }
 
         // 出片模式没有 audio 元素，退回真实时间
@@ -199,7 +182,7 @@ export default function Stage(){
     }
 
     // 暂停 —— 不是「停止」：t 不归零，从哪儿停的从哪儿接着播。
-    function pause(){
+    function pause() {
         stopTicking()
         audioEl.current?.pause()
         setPlayingBoth(false)
@@ -215,15 +198,15 @@ export default function Stage(){
     // ★「本来在播吗」只在**第一次** input 时记：拖一次会连发几十个 input，
     //   而每一个都会走到下面的 pause() —— 第二次之后 playing 已经是 false，
     //   再记就只会记成「本来没在播」，松手也就不接着播了。
-    function onScrub(e: React.ChangeEvent<HTMLInputElement>){
+    function onScrub(e: React.ChangeEvent<HTMLInputElement>) {
         const value = Number(e.target.value)
-        if(!scrubbing.current){
+        if (!scrubbing.current) {
             scrubbing.current = true
             resumeAfterScrub.current = playingRef.current
         }
         pause()
         setT(value)
-        if(audioEl.current) audioEl.current.currentTime = value/1000
+        if (audioEl.current) audioEl.current.currentTime = value / 1000
     }
 
     /** 松手（或键盘松开方向键）。
@@ -244,20 +227,20 @@ export default function Stage(){
     const resolveReady = useRef<(() => void) | null>(null)
     const readyRef = useRef<Promise<void> | null>(null)
 
-    if(readyRef.current === null){
+    if (readyRef.current === null) {
         readyRef.current = new Promise<void>((resolve) => {
             resolveReady.current = resolve
         })
     }
 
     useEffect(() => {
-        if(storyboard) resolveReady.current?.()
-    },[storyboard])
+        if (storyboard) resolveReady.current?.()
+    }, [storyboard])
 
     /** 给出片脚本用：跳到第 ms 毫秒，并等到画面真的画出来。
      *  双 rAF 替代了 Vue 的 nextTick —— setT 之后 React 会在微任务里提交 DOM，
      *  两帧足够覆盖。 */
-    async function seek(ms:number) {
+    async function seek(ms: number) {
         pause()
         await readyRef.current
         setT(ms)
@@ -271,11 +254,11 @@ export default function Stage(){
     useEffect(() => {
         const w = window as unknown as {
             __seek: (ms: number) => Promise<void>
-            __static: (cur: number, prev:number) => boolean
+            __static: (cur: number, prev: number) => boolean
         }
         w.__seek = seek
         w.__static = () => false
-    },[])
+    }, [])
 
     // staleTag 是个函数，JSX 里要调用它；先算一次，渲染里两处都能用
     const staleText = staleTag()
