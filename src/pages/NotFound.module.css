@@ -1,0 +1,30 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 120px 24px;
+    font-family: system-ui, sans-serif;
+}
+
+.code {
+    margin: 0;
+    font-size: 72px;
+    font-weight: 700;
+    color: #30363d;
+}
+
+.text {
+    margin: 0;
+    color: #8b949e;
+}
+
+.link {
+    color: #1f6feb;
+    text-decoration: none;
+}
+
+.link:hover {
+    text-decoration: underline;
+}

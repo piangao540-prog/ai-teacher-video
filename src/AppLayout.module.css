@@ -1,0 +1,48 @@
+.shell {
+    display: flex;
+    min-height: 100vh;
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: system-ui, sans-serif;
+}
+
+.sidebar {
+    flex: 0 0 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 20px 12px;
+    background: #161b22;
+    border-right: 1px solid #2c2c2c;
+}
+
+.brand {
+    padding: 0 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #8b949e;
+}
+
+.link {
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: #c9d1d9;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.link:hover {
+    background: #21262d;
+}
+
+.active {
+    background: #1f6feb;
+    color: #fff;
+}
+
+.content {
+    flex: 1;
+    /* 不加 min-width:0 的话，里面的固定宽内容会把 flex 撑破 */
+    min-width: 0;
+}
