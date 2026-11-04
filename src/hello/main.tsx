@@ -1,6 +1,5 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import SceneLab from './SceneLab'
 import App from './App'
 
 // 对照你写熟的 Vue：

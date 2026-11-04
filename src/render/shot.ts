@@ -18,7 +18,7 @@ const variantQuery = variant ? '&subs=' + encodeURIComponent(variant) : ''
 const outDir = path.resolve('out/shots')
 await mkdir(outDir, { recursive: true })
 
-let ms = 1000
+let ms: number
 let count = 1
 
 if (args[0] === '--cue') {

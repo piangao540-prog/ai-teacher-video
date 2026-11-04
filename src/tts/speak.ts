@@ -57,7 +57,7 @@ console.log('剧本:   ' + episode.parts.length + ' 段 / ' + text.length + ' �
 const ffmpeg = await findFfmpeg()
 let words: CharTiming[] = []
 let anchors: CedAnchor[] = []
-let audioFile = ''
+let audioFile: string 
 
 if (PROVIDER === 'xfyun') {
   const appId = process.env.XFYUN_APPID
