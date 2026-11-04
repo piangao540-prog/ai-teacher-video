@@ -73,8 +73,7 @@ const MIN_CUE_CHARS = 8
 const MAX_CUE_CHARS = MAX_LINE_CHARS
 const MAX_CUE_MS = 7000
 const MIN_CUE_MS = 1300
-// 最后一个字念完之后的那点静音，不显示字幕
-const TAIL_MS = 400
+
 // 相邻字幕之间小于这个缝就直接连上，免得字幕闪一下黑
 const STITCH_MS = 120
 
@@ -279,46 +278,9 @@ type Probe = {
   isStart: (p: number) => boolean
 }
 
-/** 取回 [a, b) 这段字在**原文**里的样子（带标点、带空格） */
-function rawSlice(ctx: Ctx, a: number, b: number): string {
-  if (b <= a) return ''
-  const first = ctx.adjust[a]?.start ?? ctx.rawAt[a]
-  const last = ctx.adjust[b]?.end ?? ((ctx.rawAt[b - 1] ?? 0) + 1)
-  if (first === undefined || last === undefined) return ''
-  return ctx.text.slice(first, last).trim()
-}
 
-/**
- * 挑一个断点：尽量不把英文单词/数字从中间劈开。
- *
- * 讲稿里有「serverless」「base64」「loading 等于 lazy」这种，
- * 断在字母中间（serv|erless）比断在汉字中间难看得多。
- */
-function avoidMidWord(p: Probe, start: number, want: number, limit: number): number {
-  let b = Math.max(start + 1, Math.min(want, limit))
-  let guard = 0
-  while (b > start + 1 && b < limit && guard++ < 24) {
-    if (isLatin(p.charAt(b - 1)) && isLatin(p.charAt(b))) {
-      b--
-      continue
-    }
-    break
-  }
-  return b
-}
 
-/** 在一个窗口里回头找最好的断点：先找句号，再找逗号，都没有就返回 -1 */
-function bestBreak(p: Probe, from: number, to: number): number {
-  let weak = -1
 
-  for (let q = to; q > from; q--) {
-    const ch = p.charAt(q - 1)
-    if (STRONG.includes(ch) || CLOSERS.includes(ch)) return q
-    if (WEAK.includes(ch) && weak < 0) weak = q
-  }
-
-  return weak
-}
 
 /**
  * 第一轮：按标点断句。
