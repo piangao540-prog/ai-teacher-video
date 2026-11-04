@@ -5,7 +5,7 @@ import SlideBullets from "../scenes/SlideBullets"
 import Terminal from "../scenes/Terminal"
 import Flow from "../scenes/Flow"
 import Subtitle, { type SubtitleVariant } from "./Subtitle"
-import type { Storyboard, Cue, Scene } from '../../type/storyboard'
+import type { Storyboard, Scene } from '../../type/storyboard'
 
 
 
@@ -227,11 +227,7 @@ export default function Stage() {
     const resolveReady = useRef<(() => void) | null>(null)
     const readyRef = useRef<Promise<void> | null>(null)
 
-    if (readyRef.current === null) {
-        readyRef.current = new Promise<void>((resolve) => {
-            resolveReady.current = resolve
-        })
-    }
+
 
     useEffect(() => {
         if (storyboard) resolveReady.current?.()
@@ -255,6 +251,11 @@ export default function Stage() {
         const w = window as unknown as {
             __seek: (ms: number) => Promise<void>
             __static: (cur: number, prev: number) => boolean
+        }
+        if (readyRef.current === null) {
+            readyRef.current = new Promise<void>((resolve) => {
+                resolveReady.current = resolve
+            })
         }
         w.__seek = seek
         w.__static = () => false
