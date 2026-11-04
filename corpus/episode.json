@@ -1,94 +1,109 @@
 {
   "parts": [
     {
-      "text": "很多人第一次听到 MCP，以为是又一个新框架。其实它解决的问题特别朴素。"
+      "text": "今天我们来聊一聊虚拟 DOM，很多同学都听过这个词，但说不清它到底解决什么问题。"
     },
     {
-      "text": "第一，模型本身是碰不到外部世界的，它只会根据上下文生成文字。"
+      "text": "第一，直接操作真实 DOM 其实很慢，尤其是频繁更新的时候。"
     },
     {
-      "text": "第二，每接一个工具，就要为它单独写一套对接代码，重复又容易出错。"
+      "text": "第二，虚拟 DOM 用 JS 对象来描述页面结构，不碰真实节点。"
     },
     {
-      "text": "第三，MCP 把这套对接方式标准化，写一次就能被所有客户端复用。"
+      "text": "第三，通过 diff 算法找出最小更新量，再一次性更新真实 DOM。"
     },
     {
-      "text": "那它具体是怎么把这件事标准化的呢？看这条链路。"
+      "text": "先看一个最小的例子，感受一下虚拟 DOM 长什么样。"
     },
     {
-      "text": "第一步，客户端把模型的意图变成一次具体的请求。"
+      "text": "第一行，一个虚拟节点，本质上就是一个普通的 JS 对象。"
     },
     {
-      "text": "第二步，请求发给 MCP 服务器，它负责真正干活。"
+      "text": "第二行，tag 字段记录标签名，这里是 div。"
     },
     {
-      "text": "第三步，服务器去调用文件、数据库这些外部工具。"
+      "text": "第三行，props 放属性，比如 id 是 app。"
     },
     {
-      "text": "最后，结果按统一格式回到模型，模型再接着往下说。"
+      "text": "第四行，children 放子节点，这里是一段文本。"
     },
     {
-      "text": "在这条链路里，服务器要对外声明两样东西，这是理解 MCP 的关键。"
+      "text": "第五行，这就是完整结构，非常轻量。"
     },
     {
-      "text": "一是工具，告诉客户端我能做什么，每个参数是什么类型。"
+      "text": "这个对象不依赖浏览器，可以在任何 JS 环境里创建和比较。"
     },
     {
-      "text": "二是资源，告诉客户端我能读哪些数据，比如文件或者表。"
+      "text": "它只是一个普通对象，没有真实 DOM 那么重的开销。"
     },
     {
-      "text": "只有声明清楚了，客户端才知道什么时候该调、怎么调。"
+      "text": "所以可以在内存里先比较新旧两棵树，再决定怎么更新。"
     },
     {
-      "text": "光说概念太虚，我们先写服务器最核心的那部分。"
+      "text": "这也是跨平台渲染的基础，比如服务端渲染和原生渲染。"
     },
     {
-      "text": "第一行，先从官方 SDK 里把服务器这个类引进来。"
+      "text": "有了虚拟节点，下一步就是把它变成真实 DOM。"
     },
     {
-      "text": "第二行，然后创建一个服务器实例，给它一个名字和版本号。"
+      "text": "第一行，写一个 render 函数，接收虚拟节点。"
     },
     {
-      "text": "第三行，接着注册一个工具，名字叫 add，接收两个数字参数。"
+      "text": "第二行，根据 tag 创建真实元素。"
     },
     {
-      "text": "第四行，参数的类型一定要写清楚，客户端会按这个做校验。"
+      "text": "第三行，遍历 props，把属性设置到元素上。"
     },
     {
-      "text": "第五行，工具的实现就是把两个数加起来，结果包成文本内容返回。"
+      "text": "第四行，这里用 setAttribute 设置每一个属性。"
     },
     {
-      "text": "服务器写好了，还差最后一步，把它接到标准输入输出上。"
+      "text": "第五行，属性处理完，接下来处理子节点。"
     },
     {
-      "text": "第一行，先引进标准输入输出的传输层，这是客户端和服务器对话的通道。"
+      "text": "接着把子节点挂上去，然后返回真实元素。"
     },
     {
-      "text": "第二行，把服务器连上这个通道，它就能被客户端发现了。"
+      "text": "第一行，遍历 children，逐个处理。"
     },
     {
-      "text": "跑起来看看，客户端是怎么发现并调用它的。"
+      "text": "第二行，如果是字符串就创建文本节点，否则递归 render。"
     },
     {
-      "text": "直接运行这个文件，服务器就启动了。"
+      "text": "第三行，最后把子节点挂到父元素上。"
     },
     {
-      "text": "客户端连上之后，第一件事是列出可用的工具。"
+      "text": "第四行，子节点都挂载完成。"
     },
     {
-      "text": "然后带上参数调用一次，看看它返回什么。"
+      "text": "第五行，返回创建好的真实 DOM，最简单的渲染器就完成了。"
     },
     {
-      "text": "代码跑通之后，有两个坑几乎每个人都会踩。"
+      "text": "那虚拟 DOM 的更新流程是怎样的呢？"
     },
     {
-      "text": "第一，工具的描述写得太模糊，模型就会选错工具，或者干脆不选。"
+      "text": "第一步，状态变化时生成新的虚拟节点树。"
     },
     {
-      "text": "第二，参数的类型写错了，调用会在校验那一步直接失败。"
+      "text": "第二步，用 diff 算法对比新旧两棵树。"
     },
     {
-      "text": "所以描述和类型这两样，都要像写接口文档一样认真对待。"
+      "text": "第三步，找出真正需要修改的节点。"
+    },
+    {
+      "text": "第四步，只把这些差异应用到真实 DOM 上。"
+    },
+    {
+      "text": "最后提醒几个初学者最容易踩的坑。"
+    },
+    {
+      "text": "第一，虚拟 DOM 不一定比手动操作真实 DOM 快，它的优势在于可维护性。"
+    },
+    {
+      "text": "第二，diff 算法只做同层比较，不会跨层级遍历，所以复杂度是线性的。"
+    },
+    {
+      "text": "第三，列表渲染时 key 的作用是帮助 diff 复用节点，不要用索引当 key。"
     }
   ],
   "scenes": [
@@ -96,181 +111,173 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "MCP 解决什么问题",
+        "title": "虚拟 DOM 到底在解决什么",
         "bullets": [
           {
-            "text": "模型本身碰不到外部世界",
+            "text": "直接操作真实 DOM 很慢",
             "part": 1
           },
           {
-            "text": "每个工具都要单独写对接",
+            "text": "虚拟 DOM 是 JS 对象描述",
             "part": 2
           },
           {
-            "text": "MCP 把对接标准化",
+            "text": "diff 找出最小更新量",
             "part": 3
           }
         ]
       }
     },
     {
-      "template": "Flow",
+      "template": "CodeTyping",
       "startPart": 4,
       "props": {
-        "title": "MCP 的调用链路",
-        "steps": [
+        "fileName": "vdom.js",
+        "lines": [
           {
-            "text": "客户端发起请求",
+            "code": "const vnode = {",
             "part": 5
           },
           {
-            "text": "MCP 服务器",
+            "code": "  tag: 'div',",
             "part": 6
           },
           {
-            "text": "调用外部工具",
+            "code": "  props: { id: 'app' },",
             "part": 7
           },
           {
-            "text": "结果回到模型",
+            "code": "  children: ['hello']",
             "part": 8
+          },
+          {
+            "code": "}",
+            "part": 9
           }
         ]
       }
     },
     {
       "template": "SlideBullets",
-      "startPart": 9,
+      "startPart": 10,
       "props": {
-        "title": "服务器对外声明什么",
+        "title": "虚拟节点为什么轻量",
         "bullets": [
           {
-            "text": "工具：能做什么，参数是什么",
-            "part": 10
-          },
-          {
-            "text": "资源：能读哪些数据",
+            "text": "普通对象，没有 DOM 开销",
             "part": 11
           },
           {
-            "text": "声明清楚了，客户端才敢调",
+            "text": "可以提前在内存里比较",
             "part": 12
+          },
+          {
+            "text": "跨平台渲染的基础",
+            "part": 13
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 13,
+      "startPart": 14,
       "props": {
-        "fileName": "server.js",
+        "fileName": "render.js",
         "lines": [
           {
-            "code": "import { McpServer } from",
-            "part": 14
-          },
-          {
-            "code": "  '@modelcontextprotocol/sdk/server/mcp.js'"
-          },
-          {
-            "code": "const server = new McpServer({",
+            "code": "function render(vnode) {",
             "part": 15
           },
           {
-            "code": "  name: 'demo', version: '1.0.0' })"
-          },
-          {
-            "code": "server.tool('add', {",
+            "code": "  const el = document.createElement(vnode.tag)",
             "part": 16
           },
           {
-            "code": "  a: { type: 'number' }, b: { type: 'number' } },",
+            "code": "  for (const key in vnode.props) {",
             "part": 17
           },
           {
-            "code": "  async ({ a, b }) => ({ content: [",
+            "code": "    el.setAttribute(key, vnode.props[key])",
             "part": 18
           },
           {
-            "code": "    { type: 'text', text: String(a + b) }] }))"
+            "code": "  }",
+            "part": 19
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 19,
+      "startPart": 20,
       "props": {
-        "fileName": "server.js",
+        "fileName": "render.js",
         "lines": [
           {
-            "code": "import { StdioServerTransport } from",
-            "part": 20
-          },
-          {
-            "code": "  '@modelcontextprotocol/sdk/server/stdio.js'"
-          },
-          {
-            "code": "await server.connect(new StdioServerTransport())",
+            "code": "  vnode.children.forEach(child => {",
             "part": 21
+          },
+          {
+            "code": "    el.appendChild(typeof child === 'string'",
+            "part": 22
+          },
+          {
+            "code": "      ? document.createTextNode(child) : render(child))",
+            "part": 23
+          },
+          {
+            "code": "  })",
+            "part": 24
+          },
+          {
+            "code": "  return el",
+            "part": 25
           }
         ]
       }
     },
     {
-      "template": "Terminal",
-      "startPart": 22,
+      "template": "Flow",
+      "startPart": 26,
       "props": {
-        "title": "启动 MCP 服务器",
-        "prompt": "$",
-        "lines": [
+        "title": "虚拟 DOM 的更新流程",
+        "steps": [
           {
-            "text": "node server.js",
-            "kind": "command",
-            "part": 23
+            "text": "生成新 vnode",
+            "part": 27
           },
           {
-            "text": "[mcp] server demo 1.0.0 started",
-            "kind": "output"
+            "text": "diff 对比",
+            "part": 28
           },
           {
-            "text": "list tools",
-            "kind": "command",
-            "part": 24
+            "text": "计算最小更新",
+            "part": 29
           },
           {
-            "text": "add(a: number, b: number)",
-            "kind": "output"
-          },
-          {
-            "text": "call add { a: 2, b: 3 }",
-            "kind": "command",
-            "part": 25
-          },
-          {
-            "text": "result: 5",
-            "kind": "output"
+            "text": "更新真实 DOM",
+            "part": 30
           }
         ]
       }
     },
     {
       "template": "SlideBullets",
-      "startPart": 26,
+      "startPart": 31,
       "props": {
-        "title": "两个最容易搞错的地方",
+        "title": "最容易搞错的地方",
         "bullets": [
           {
-            "text": "工具描述写太糊，模型选错工具",
-            "part": 27
+            "text": "虚拟 DOM 不一定比手动操作快",
+            "part": 32
           },
           {
-            "text": "参数类型写错，调用直接失败",
-            "part": 28
+            "text": "diff 是同层比较，不是全树遍历",
+            "part": 33
           },
           {
-            "text": "描述和类型都要写清楚",
-            "part": 29
+            "text": "key 的作用是复用节点",
+            "part": 34
           }
         ]
       }

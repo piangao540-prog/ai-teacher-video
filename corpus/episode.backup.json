@@ -1,97 +1,94 @@
 {
   "parts": [
     {
-      "text": "今天我们来聊聊 MCP，很多同学第一次听到这个词，完全不知道它是干什么的。"
+      "text": "很多人第一次听到 MCP，以为是又一个新框架。其实它解决的问题特别朴素。"
     },
     {
-      "text": "第一，MCP 到底是个什么东西。"
+      "text": "第一，模型本身是碰不到外部世界的，它只会根据上下文生成文字。"
     },
     {
-      "text": "第二，它解决了什么实际问题。"
+      "text": "第二，每接一个工具，就要为它单独写一套对接代码，重复又容易出错。"
     },
     {
-      "text": "第三，我们写一个最小可用的例子。"
+      "text": "第三，MCP 把这套对接方式标准化，写一次就能被所有客户端复用。"
     },
     {
-      "text": "最后，说说新手最容易搞错的地方。"
+      "text": "那它具体是怎么把这件事标准化的呢？看这条链路。"
     },
     {
-      "text": "先说说它解决什么问题。你可以把 MCP 想象成 AI 应用的 USB 接口。"
+      "text": "第一步，客户端把模型的意图变成一次具体的请求。"
     },
     {
-      "text": "没有 MCP 的时候，每个 AI 应用想用工具，都得单独写一套对接代码。"
+      "text": "第二步，请求发给 MCP 服务器，它负责真正干活。"
     },
     {
-      "text": "有了 MCP，工具按统一协议暴露出来，谁都能接，写一次就够了。"
+      "text": "第三步，服务器去调用文件、数据库这些外部工具。"
     },
     {
-      "text": "注意，MCP 是一个协议，不是框架，也不是某个具体产品。"
+      "text": "最后，结果按统一格式回到模型，模型再接着往下说。"
     },
     {
-      "text": "具体来说，MCP 定义了三样东西，理解这三样就够用了。"
+      "text": "在这条链路里，服务器要对外声明两样东西，这是理解 MCP 的关键。"
     },
     {
-      "text": "第一是 Tools，就是模型可以主动调用的函数，比如查天气、查数据库。"
+      "text": "一是工具，告诉客户端我能做什么，每个参数是什么类型。"
     },
     {
-      "text": "第二是 Resources，是模型可以读取的数据，比如文件内容、配置信息。"
+      "text": "二是资源，告诉客户端我能读哪些数据，比如文件或者表。"
     },
     {
-      "text": "第三是 Prompts，是预置的提示词模板，方便用户快速发起任务。"
+      "text": "只有声明清楚了，客户端才知道什么时候该调、怎么调。"
     },
     {
-      "text": "日常开发里用得最多的就是 Tools，我们先把它搞清楚。"
+      "text": "光说概念太虚，我们先写服务器最核心的那部分。"
     },
     {
-      "text": "我们来看一个最小的 MCP 服务器例子，用官方 SDK 写。"
+      "text": "第一行，先从官方 SDK 里把服务器这个类引进来。"
     },
     {
-      "text": "第一行，先引入服务器和标准输入输出传输层，这是最常用的组合。"
+      "text": "第二行，然后创建一个服务器实例，给它一个名字和版本号。"
     },
     {
-      "text": "第二行，标准输入输出传输层单独从另一个路径引入。"
+      "text": "第三行，接着注册一个工具，名字叫 add，接收两个数字参数。"
     },
     {
-      "text": "第三行，创建一个服务器实例，给它一个名字。"
+      "text": "第四行，参数的类型一定要写清楚，客户端会按这个做校验。"
     },
     {
-      "text": "第四行，注册一个工具叫 add，接收两个数字参数。"
+      "text": "第五行，工具的实现就是把两个数加起来，结果包成文本内容返回。"
     },
     {
-      "text": "接着把工具的逻辑和启动代码补完。"
+      "text": "服务器写好了，还差最后一步，把它接到标准输入输出上。"
     },
     {
-      "text": "第一行，工具的逻辑很简单，把两个数加起来。"
+      "text": "第一行，先引进标准输入输出的传输层，这是客户端和服务器对话的通道。"
     },
     {
-      "text": "第二行，结果放在 content 数组里返回，类型是文本。"
+      "text": "第二行，把服务器连上这个通道，它就能被客户端发现了。"
     },
     {
-      "text": "第三行，最后用标准输入输出作为传输层，把服务器接上就可以启动了。"
+      "text": "跑起来看看，客户端是怎么发现并调用它的。"
     },
     {
-      "text": "写完了，我们把它跑起来看看。"
+      "text": "直接运行这个文件，服务器就启动了。"
     },
     {
-      "text": "直接运行这个文件。"
+      "text": "客户端连上之后，第一件事是列出可用的工具。"
     },
     {
-      "text": "我们发一条 tools list 请求，看看服务器能不能正确响应。"
+      "text": "然后带上参数调用一次，看看它返回什么。"
     },
     {
-      "text": "最后说说最容易搞错的地方，这几个坑我几乎每次都能看到有人踩。"
+      "text": "代码跑通之后，有两个坑几乎每个人都会踩。"
     },
     {
-      "text": "第一，MCP 不是模型，它不会自己思考，只是把工具暴露给模型用。"
+      "text": "第一，工具的描述写得太模糊，模型就会选错工具，或者干脆不选。"
     },
     {
-      "text": "第二，工具的参数一定要用 JSON Schema 描述清楚，否则模型不知道传什么。"
+      "text": "第二，参数的类型写错了，调用会在校验那一步直接失败。"
     },
     {
-      "text": "第三，用 stdio 传输的时候，千万不要往标准输出打印日志，会污染协议。"
-    },
-    {
-      "text": "第四，工具最好设计成幂等的，因为模型可能重复调用同一个工具。"
+      "text": "所以描述和类型这两样，都要像写接口文档一样认真对待。"
     }
   ],
   "scenes": [
@@ -99,43 +96,43 @@
       "template": "SlideBullets",
       "startPart": 0,
       "props": {
-        "title": "认识 MCP",
+        "title": "MCP 解决什么问题",
         "bullets": [
           {
-            "text": "MCP 是什么",
+            "text": "模型本身碰不到外部世界",
             "part": 1
           },
           {
-            "text": "它解决什么问题",
+            "text": "每个工具都要单独写对接",
             "part": 2
           },
           {
-            "text": "最小例子跑起来",
+            "text": "MCP 把对接标准化",
             "part": 3
-          },
-          {
-            "text": "最容易踩的坑",
-            "part": 4
           }
         ]
       }
     },
     {
-      "template": "SlideBullets",
-      "startPart": 5,
+      "template": "Flow",
+      "startPart": 4,
       "props": {
-        "title": "MCP 解决什么问题",
-        "bullets": [
+        "title": "MCP 的调用链路",
+        "steps": [
           {
-            "text": "没有 MCP：每个应用单独对接工具",
+            "text": "客户端发起请求",
+            "part": 5
+          },
+          {
+            "text": "MCP 服务器",
             "part": 6
           },
           {
-            "text": "有 MCP：一次对接处处可用",
+            "text": "调用外部工具",
             "part": 7
           },
           {
-            "text": "MCP 是协议，不是框架",
+            "text": "结果回到模型",
             "part": 8
           }
         ]
@@ -145,54 +142,57 @@
       "template": "SlideBullets",
       "startPart": 9,
       "props": {
-        "title": "MCP 的三个核心概念",
+        "title": "服务器对外声明什么",
         "bullets": [
           {
-            "text": "Tools：模型可以主动调用的函数",
+            "text": "工具：能做什么，参数是什么",
             "part": 10
           },
           {
-            "text": "Resources：模型可以读取的数据",
+            "text": "资源：能读哪些数据",
             "part": 11
           },
           {
-            "text": "Prompts：预置的提示词模板",
+            "text": "声明清楚了，客户端才敢调",
             "part": 12
-          },
-          {
-            "text": "日常用得最多的是 Tools",
-            "part": 13
           }
         ]
       }
     },
     {
       "template": "CodeTyping",
-      "startPart": 14,
+      "startPart": 13,
       "props": {
         "fileName": "server.js",
         "lines": [
           {
             "code": "import { McpServer } from",
-            "part": 15
+            "part": 14
           },
           {
             "code": "  '@modelcontextprotocol/sdk/server/mcp.js'"
           },
           {
-            "code": "import { StdioServerTransport } from",
+            "code": "const server = new McpServer({",
+            "part": 15
+          },
+          {
+            "code": "  name: 'demo', version: '1.0.0' })"
+          },
+          {
+            "code": "server.tool('add', {",
             "part": 16
           },
           {
-            "code": "  '@modelcontextprotocol/sdk/server/stdio.js'"
-          },
-          {
-            "code": "const server = new McpServer({ name: 'demo' })",
+            "code": "  a: { type: 'number' }, b: { type: 'number' } },",
             "part": 17
           },
           {
-            "code": "server.tool('add', { a: Number, b: Number },",
+            "code": "  async ({ a, b }) => ({ content: [",
             "part": 18
+          },
+          {
+            "code": "    { type: 'text', text: String(a + b) }] }))"
           }
         ]
       }
@@ -204,26 +204,22 @@
         "fileName": "server.js",
         "lines": [
           {
-            "code": "  async ({ a, b }) => ({",
+            "code": "import { StdioServerTransport } from",
             "part": 20
           },
           {
-            "code": "    content: [{ type: 'text', text: String(a + b) }]",
-            "part": 21
-          },
-          {
-            "code": "  }))"
+            "code": "  '@modelcontextprotocol/sdk/server/stdio.js'"
           },
           {
             "code": "await server.connect(new StdioServerTransport())",
-            "part": 22
+            "part": 21
           }
         ]
       }
     },
     {
       "template": "Terminal",
-      "startPart": 23,
+      "startPart": 22,
       "props": {
         "title": "启动 MCP 服务器",
         "prompt": "$",
@@ -231,19 +227,28 @@
           {
             "text": "node server.js",
             "kind": "command",
-            "part": 24
+            "part": 23
           },
           {
-            "text": "MCP server running on stdio",
+            "text": "[mcp] server demo 1.0.0 started",
             "kind": "output"
           },
           {
-            "text": "echo '{\"method\":\"tools/list\"}' | node server.js",
+            "text": "list tools",
+            "kind": "command",
+            "part": 24
+          },
+          {
+            "text": "add(a: number, b: number)",
+            "kind": "output"
+          },
+          {
+            "text": "call add { a: 2, b: 3 }",
             "kind": "command",
             "part": 25
           },
           {
-            "text": "{\"tools\":[{\"name\":\"add\",...}]}",
+            "text": "result: 5",
             "kind": "output"
           }
         ]
@@ -253,23 +258,19 @@
       "template": "SlideBullets",
       "startPart": 26,
       "props": {
-        "title": "新手最容易踩的坑",
+        "title": "两个最容易搞错的地方",
         "bullets": [
           {
-            "text": "MCP 不是模型，不会自己思考",
+            "text": "工具描述写太糊，模型选错工具",
             "part": 27
           },
           {
-            "text": "参数要用 JSON Schema 描述",
+            "text": "参数类型写错，调用直接失败",
             "part": 28
           },
           {
-            "text": "stdio 模式别往 stdout 打日志",
+            "text": "描述和类型都要写清楚",
             "part": 29
-          },
-          {
-            "text": "工具要幂等，模型会重复调用",
-            "part": 30
           }
         ]
       }
