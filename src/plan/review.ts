@@ -47,7 +47,7 @@ export function formatEpisodeReview(ep: Episode): string {
       const narration =
         typeof part === 'number'
           ? (ep.parts[part]?.text ?? '⚠ 引用了不存在的 part ' + part)
-          : /^[\s}\]\);,]*$/.test(body)
+          : /^[\s}\]);,]*$/.test(body)
             ? '（收尾符号，紧接上一行出现）'
             : '（铺垫行：讲稿里不专门讲它，跟着场景开头那句过渡出现）'
       put('  ' + (l.kind === 'command' ? '$ ' : '') + body)

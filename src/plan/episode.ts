@@ -410,7 +410,7 @@ function checkCodeNarration(
   const bodyOf = (l: { code?: string }): string => l.code ?? ''
   const hasPart = (l: { part?: number }): boolean => typeof l.part === 'number'
   // 纯收尾符号：} / }) / ); 这类，没有讲解也说得过去
-  const isCloser = (b: string): boolean => /^[\s}\]\);,]*$/.test(b)
+  const isCloser = (b: string): boolean => /^[\s}\]);,]*$/.test(b)
   // 续行：没有 part，但它是上一条语句没写完的延续 —— 模型为了满足「每行最多 60 字符」，
   // 会把长 import 拆成 `import { X } from` + `'.../x.js'` 两行，第二行就是这种。
   // 它不是「铺垫行」：铺垫行是正文开始前的上下文，续行属于上一条语句本身。

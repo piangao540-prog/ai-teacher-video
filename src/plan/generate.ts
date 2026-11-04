@@ -219,8 +219,8 @@ export async function generate(
 
   // attempt 声明在循环外：成功之后要打印「第几次通过」，循环内的声明出了循环就没了
   // （原来那句 `problems.length === 0 ? '' : ''` 两个分支都是空串，永远打印不出次数）。
-  let attempt = 0
-  for (attempt = 1; attempt <= cfg.attempts; attempt++) {
+  let attempt = 1
+  for (; attempt <= cfg.attempts; attempt++) {
     onLog('第 ' + attempt + ' / ' + cfg.attempts + ' 次生成…')
     const raw = await callLLM(cfg, messages, onLog)
 
