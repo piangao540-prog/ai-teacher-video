@@ -1,0 +1,36 @@
+.page {
+    min-height: 100vh;
+    padding: 32px;
+    color-scheme: light;
+    /* 深色改回浅色，滚动条才不会还是黑的 */
+    background: linear-gradient(180deg, #ffe9f2 0, #fff 320px);
+    color: #831843;
+}
+
+.header {
+    margin-bottom: 20px;
+}
+
+.title {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 600;
+    color: #831843;
+}
+
+.meta {
+    margin: 0;
+    font-size: 13px;
+    color: #ab6a87;
+    font-family: ui-monospace, monospace;
+}
+
+.stats {
+    margin-bottom: 16px;
+}
+
+.statCard {
+    height: 100%;
+    border-color: #fbd5e5;
+    box-shadow: 0 6px 24px rgba(236, 72, 153, 0.08);
+}
