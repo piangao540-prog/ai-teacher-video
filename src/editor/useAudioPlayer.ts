@@ -1,34 +1,16 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, type RefObject} from "react"
 
-export function useAudioPlayer() {
+export function useAudioPlayer(audioRef: RefObject<HTMLAudioElement | null>) {
     const [t, setT] = useState(0)
     const [playing, setPlaying] = useState(false)
-    const audioRef = useRef<HTMLAudioElement>(null)
     const playingRef = useRef(false)
-    const rafRef = useRef(0)
     const resumeRef = useRef(false)
 
     // 暂停播放器
     function pause() {
         playingRef.current = false
         audioRef.current?.pause()
-        cancelAnimationFrame(rafRef.current)
         setPlaying(false)
-    }
-
-    // 负责启动 RAF 时间更新循环
-    function startTicking() {
-        const tick = () => {
-            const a = audioRef.current
-            if (!a || !playingRef.current) return
-            if (a.ended) {
-                pause()
-                return
-            }
-            setT(a.currentTime * 1000)
-            rafRef.current = requestAnimationFrame(tick)
-        }
-        rafRef.current = requestAnimationFrame(tick)
     }
 
     // 启动
@@ -40,7 +22,6 @@ export function useAudioPlayer() {
         void audio.play()
         playingRef.current = true
         setPlaying(true)
-        startTicking()
     }
 
     // 切换状态
@@ -74,12 +55,33 @@ export function useAudioPlayer() {
         play()
     }
 
+    // 时间更新循环：playing 变 true 时建，变 false 或卸载时拆。
+    // 暂停音频也放在清理里 —— 建了什么就拆什么，一个 effect 管到底。
     useEffect(() => {
-        return () => {
-            cancelAnimationFrame(rafRef.current)
-            audioRef.current?.pause()
+        if (!playing) return
+
+        const audio = audioRef.current
+        if (!audio) return
+
+        let raf = 0
+        const tick = () => {
+            if (audio.ended) {
+                // 不在这里调 pause()：setPlaying(false) 会触发清理，
+                // 清理里本来就要 pause 音频。少一条依赖，也就少一个陷阱。
+                playingRef.current = false
+                setPlaying(false)
+                return
+            }
+            setT(audio.currentTime * 1000)
+            raf = requestAnimationFrame(tick)
         }
-    }, [])
+        raf = requestAnimationFrame(tick)
+
+        return () => {
+            cancelAnimationFrame(raf)
+            audio.pause()
+        }
+    }, [playing,audioRef])
 
     return { t, playing, audioRef, toggle, seek, scrubStart, scrubChange, scrubEnd }
 }

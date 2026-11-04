@@ -1,8 +1,108 @@
 .page {
     min-height: 100vh;
-    padding: 24px;
+    padding: 32px;
     background: #0d1117;
     color: #e6edf3;
     font-family: system-ui, sans-serif;
     color-scheme: dark;
+}
+
+/* audio 只是播放器，不要占位 */
+.page audio {
+    display: none;
+}
+
+.title {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.meta {
+    margin: 0 0 20px;
+    font-size: 13px;
+    color: #8b949e;
+    font-family: ui-monospace, monospace;
+}
+
+/* 工具栏：按钮之间留出间距，否则默认会挤成一条 */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.btn {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-family: inherit;
+    color: #c9d1d9;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+    background: #30363d;
+    border-color: #484f58;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.hint {
+    font-size: 13px;
+    color: #3fb950;
+}
+
+.hintError {
+    font-size: 13px;
+    color: #f85149;
+}
+
+.timeline {
+    position: relative;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+/* 播放头：盖在时间轴上面，不接鼠标事件 */
+.playhead {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #f85149;
+    pointer-events: none;
+}
+
+.scrub {
+    display: block;
+    width: 100%;
+    margin-bottom: 24px;
+    accent-color: #1f6feb;
+}
+
+.transport {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.time {
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    color: #8b949e;
+    font-variant-numeric: tabular-nums;
+}
+
+.status {
+    padding: 48px 0;
+    color: #8b949e;
+    font-size: 14px;
 }
