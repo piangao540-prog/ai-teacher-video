@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router'
+import { useStudioStore } from './store/studio'
 import styles from './AppLayout.module.css'
 
 /** NavLink 激活时换一套样式 */
@@ -12,13 +13,33 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
  * 就是下面 children 里那些页面出现的地方。
  */
 export default function AppLayout() {
+    const collapsed = useStudioStore((s) => s.collapsed)
+    const toggle = useStudioStore((s) => s.toggleCollapsed)
+
     return (
         <div className={styles.shell}>
-            <nav className={styles.sidebar}>
-                <div className={styles.brand}>AI 老师</div>
-                <NavLink to="/" end className={linkClass}>播放器</NavLink>
-                <NavLink to="/editor" className={linkClass}>字幕</NavLink>
-                <NavLink to="/studio" className={linkClass}>剧本</NavLink>
+            <nav className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
+                <div className={styles.brand}>{collapsed ? 'AI' : 'AI 老师'}</div>
+                <NavLink to="/" end className={linkClass} title='播放器'>
+                    <span className={styles.icon}>▶</span>
+                    <span className={styles.label}>播放器</span>
+                </NavLink>
+                <NavLink to="/editor" className={linkClass} title="字幕">
+                    <span className={styles.icon}>✎</span>
+                    <span className={styles.label}>字幕</span>
+                </NavLink>
+                <NavLink to="/studio" className={linkClass} title="剧本">
+                    <span className={styles.icon}>▤</span>
+                    <span className={styles.label}>剧本</span>
+                </NavLink>
+
+                <button
+                    className={styles.toggle}
+                    onClick={toggle}
+                    title={collapsed ? '展开' : '收起'}
+                >
+                    {collapsed ? '»' : '«'}
+                </button>
             </nav>
             <main className={styles.content}>
                 <Outlet />

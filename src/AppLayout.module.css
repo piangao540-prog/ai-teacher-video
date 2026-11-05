@@ -8,12 +8,24 @@
 
 .sidebar {
     flex: 0 0 180px;
+    height: 100vh;
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 4px;
     padding: 20px 12px;
     background: #161b22;
     border-right: 1px solid #2c2c2c;
+    transition: flex-basis 0.2s ease, padding 0.2s ease;
+}
+
+.collapsed {
+    flex: 0 0 64px;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 .brand {
@@ -22,14 +34,46 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     color: #8b949e;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     padding: 8px 12px;
     border-radius: 8px;
     color: #c9d1d9;
     text-decoration: none;
     font-size: 14px;
+    white-space: nowrap;
+}
+
+.icon {
+    flex: 0 0 18px;
+    text-align: center;
+}
+
+.collapsed .label {
+    display: none;
+}
+
+/* 用 margin-top:auto 把按钮顶到底部 —— 侧栏是 flex column */
+.toggle {
+    margin-top: auto;
+    padding: 8px;
+    font-size: 14px;
+    color: #8b949e;
+    background: transparent;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.toggle:hover {
+    background: #21262d;
+    color: #e6edf3;
 }
 
 .link:hover {
