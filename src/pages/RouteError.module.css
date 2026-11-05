@@ -2,6 +2,7 @@
    否则是默认黑字压在 index.html 的 #111 上，等于看不见。 */
 .page {
     min-height: 100vh;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
